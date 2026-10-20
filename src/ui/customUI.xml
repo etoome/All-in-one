@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="RibbonOnLoad">
+  <ribbon>
+    <tabs>
+      <tab id="all-in-one" label="All-in-one" insertBeforeMso="TabHome">
+        <group id="slides" label="Slides" imageMso="SlideNewGalleryInsert">
+          <box id="slides.column" boxStyle="vertical">
+            <gallery idMso="SlideNewGalleryInsert" showLabel="false" />
+            <gallery idMso="SlideLayoutGallery" showLabel="false"
+              getVisible="GetSlideMasterClosedVisible" />
+            <!-- PowerPoint hides the built-in Layout gallery in Slide Master view; this keeps the
+            slot. -->
+            <gallery id="slides.layoutDisabled" imageMso="SlideLayoutGallery" showLabel="false"
+              enabled="false" getVisible="GetSlideMasterOpenVisible"
+              screentip="Layout"
+              supertip="Not available in Slide Master view." />
+            <button id="slides.openSlideMaster" onAction="OpenSlideMaster"
+              getVisible="GetSlideMasterClosedVisible"
+              imageMso="ViewSlideMasterView" showLabel="false"
+              screentip="Slide Master"
+              supertip="Edit the master slide that defines the layout and formatting for all slides." />
+            <button id="slides.closeSlideMaster" onAction="CloseSlideMaster"
+              getVisible="GetSlideMasterOpenVisible"
+              imageMso="MasterViewClose" showLabel="false"
+              screentip="Close Master View"
+              supertip="Close Slide Master view and return to the previous view." />
+          </box>
+        </group>
+        <group id="shape" label="Shape" imageMso="ShapesMoreShapes">
+          <box id="shape.column" boxStyle="vertical">
+            <gallery idMso="ShapesInsertGallery" showLabel="false" />
+            <control idMso="ObjectEditShapeMenu" showLabel="false"
+              screentip="Edit Shape" supertip="Change the selected shape or edit its points." />
+            <control idMso="ShapeEffectsMenu" showLabel="false"
+              screentip="Shape Effects"
+              supertip="Apply a visual effect, such as a shadow, glow, or reflection, to the selected shape." />
+          </box>
+        </group>
+        <group id="edit" label="Edit" imageMso="ShapeFillColorPicker">
+          <box id="edit.column" boxStyle="vertical">
+            <control idMso="ShapeFillColorPicker" showLabel="false" />
+            <control idMso="ShapeOutlineColorPicker" showLabel="false" />
+            <control idMso="FontColorPicker" showLabel="false" />
+          </box>
+          <dialogBoxLauncher>
+            <button id="edit.dialog" onAction="ShowObjectFormatDialog"
+              getEnabled="EnableWhenShapeSelected"
+              screentip="Format Shape"
+              supertip="Open the Format Shape dialog to set fill, line, size, and text box options." />
+          </dialogBoxLauncher>
+        </group>
+        <group id="text" label="Text" imageMso="TextBoxInsert">
+          <box id="text.top" boxStyle="horizontal">
+            <control idMso="Font" showLabel="false" />
+            <control idMso="FontSize" showLabel="false" />
+            <control idMso="FontSizeIncrease" showLabel="false" />
+            <control idMso="FontSizeDecrease" showLabel="false" />
+          </box>
+          <box id="text.middle" boxStyle="horizontal">
+            <control idMso="Italic" keytip="I" />
+            <control idMso="Strikethrough" />
+            <control idMso="Bold" keytip="B" />
+            <control idMso="Underline" keytip="U" />
+            <gallery idMso="ChangeCaseGallery" showLabel="false"
+              screentip="Change Case"
+              supertip="Change all selected text to UPPERCASE, lowercase, or other capitalization styles." />
+            <control idMso="ClearFormatting" showLabel="false" />
+          </box>
+          <box id="text.bottom" boxStyle="horizontal">
+            <control idMso="AlignLeft" showLabel="false" keytip="AL" />
+            <control idMso="AlignCenter" showLabel="false" keytip="AC" />
+            <control idMso="AlignRight" showLabel="false" keytip="AR" />
+            <control idMso="AlignJustify" showLabel="false" keytip="AJ" />
+            <gallery idMso="TextAlignGallery" showLabel="false" />
+          </box>
+          <dialogBoxLauncher>
+            <button id="text.dialog" onAction="ShowFontDialog"
+              getEnabled="EnableWhenTextSelected"
+              screentip="Font"
+              supertip="Open the Font dialog box to set character formatting." />
+          </dialogBoxLauncher>
+        </group>
+        <group id="paragraph" label="Paragraph" imageMso="BulletsGallery">
+          <box id="paragraph.bullet" boxStyle="horizontal">
+            <control idMso="BulletsGallery" showLabel="false" />
+          </box>
+          <box id="paragraph.numbering" boxStyle="horizontal">
+            <control idMso="NumberingGallery" showLabel="false" />
+          </box>
+          <box id="paragraph.indent" boxStyle="horizontal">
+            <control idMso="IndentDecrease" showLabel="false" />
+            <control idMso="IndentIncrease" showLabel="false" />
+          </box>
+          <separator id="paragraph.separator1" />
+          <box id="paragraph.other" boxStyle="vertical">
+            <gallery idMso="TextDirectionGallery" showLabel="false"
+              screentip="Text Direction"
+              supertip="Change the orientation of text within the selected placeholder or text box." />
+            <gallery idMso="LineSpacingGalleryPowerPoint" showLabel="false"
+              screentip="Line Spacing"
+              supertip="Change the line spacing within the selected paragraph." />
+          </box>
+          <dialogBoxLauncher>
+            <button id="paragraph.dialog" onAction="ShowParagraphDialog"
+              getEnabled="EnableWhenTextSelected"
+              screentip="Paragraph"
+              supertip="Open the Paragraph dialog box to set indents, spacing, and alignment." />
+          </dialogBoxLauncher>
+        </group>
+        <group id="size" label="Size" imageMso="ShapeWidth">
+          <control idMso="ShapeWidth" showImage="false" showLabel="true" label="Width:" />
+          <control idMso="ShapeHeight" showImage="false" showLabel="true" label="Height:" />
+
+          <box id="size.other" boxStyle="horizontal">
+            <button id="size.lockAspectRatioLocked"
+              onAction="UnlockAspectRatio"
+              getVisible="GetLockAspectRatioVisible"
+              getEnabled="EnableWhenShapeSelected"
+              image="lockClosed" showLabel="false"
+              screentip="Aspect Ratio Locked"
+              supertip="Width and height are locked proportionally for the selected shape(s). Click to unlock." />
+            <button id="size.lockAspectRatioUnlocked"
+              onAction="LockAspectRatio"
+              getVisible="GetLockAspectRatioNotVisible"
+              getEnabled="EnableWhenShapeSelected"
+              image="lockOpen" showLabel="false"
+              screentip="Aspect Ratio Unlocked"
+              supertip="Width and height resize independently for the selected shape(s). Click to lock proportionally." />
+            <!-- <button id="size.smartResize" onAction="SmartResize"
+                getEnabled="EnableWhenMultipleShapesSelected"
+                image="smartResize" showLabel="false"
+                screentip="Smart Resize"
+                supertip="Resize all selected shapes proportionally to match the new size of the first-selected
+                  shape." /> -->
+          </box>
+          <dialogBoxLauncher>
+            <button id="size.dialog" onAction="ShowSizeAndPositionDialog"
+              getEnabled="EnableWhenShapeSelected"
+              screentip="Size and Position"
+              supertip="Open the Format Shape pane to set exact size, rotation, and position." />
+          </dialogBoxLauncher>
+        </group>
+        <group id="transform" label="Transform" imageMso="ObjectRotateRight90">
+          <box id="transform.rotate" boxStyle="horizontal">
+            <control idMso="ObjectRotateLeft90" showLabel="false" />
+            <control idMso="ObjectRotateRight90" showLabel="false" />
+          </box>
+          <box id="transform.flip" boxStyle="horizontal">
+            <control idMso="ObjectFlipHorizontal" showLabel="false" />
+            <control idMso="ObjectFlipVertical" showLabel="false" />
+          </box>
+          <box id="transform.switch" boxStyle="horizontal">
+            <button id="transform.switchPosition"
+              onAction="SwitchObjectPosition"
+              getEnabled="EnableWhenTwoShapesSelected"
+              image="switchObjectPosition" showLabel="false"
+              screentip="Switch Position"
+              supertip="Swap the positions of the two selected shapes, exchanging their top-left corners." />
+          </box>
+        </group>
+        <group id="arrange" label="Arrange" imageMso="ObjectBringToFrontMenu">
+          <box id="arrange.group" boxStyle="vertical">
+            <control idMso="ObjectsGroup" showLabel="false" />
+            <control idMso="ObjectsUngroup" showLabel="false" />
+          </box>
+          <separator id="arrange.separator1" />
+          <box id="arrange.front" boxStyle="horizontal">
+            <control idMso="ObjectBringToFront" showLabel="false" />
+            <control idMso="ObjectBringForward" showLabel="false" />
+          </box>
+          <box id="arrange.back" boxStyle="horizontal">
+            <control idMso="ObjectSendToBack" showLabel="false" />
+            <control idMso="ObjectSendBackward" showLabel="false" />
+          </box>
+        </group>
+        <group id="alignment" label="Alignment"
+          imageMso="ObjectsAlignLeftSmart">
+          <box id="alignment.vertical" boxStyle="horizontal">
+            <button id="alignment.top" onAction="AlignObjectsTop"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignTopSmart" showLabel="false"
+              screentip="Align Top"
+              supertip="Align the top edges of the selected shapes to the first selected shape." />
+            <button id="alignment.bottom" onAction="AlignObjectsBottom"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignBottomSmart" showLabel="false"
+              screentip="Align Bottom"
+              supertip="Align the bottom edges of the selected shapes to the first selected shape." />
+          </box>
+          <box id="alignment.horizontal" boxStyle="horizontal">
+            <button id="alignment.left" onAction="AlignObjectsLeft"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignLeftSmart" showLabel="false"
+              screentip="Align Left"
+              supertip="Align the left edges of the selected shapes to the first selected shape." />
+            <button id="alignment.right" onAction="AlignObjectsRight"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignRightSmart" showLabel="false"
+              screentip="Align Right"
+              supertip="Align the right edges of the selected shapes to the first selected shape." />
+          </box>
+          <box id="alignment.middleCenter" boxStyle="horizontal">
+            <button id="alignment.middle" onAction="AlignObjectsMiddle"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignMiddleVerticalSmart" showLabel="false"
+              screentip="Align Middle"
+              supertip="Center the selected shapes vertically on the first selected shape." />
+            <button id="alignment.center" onAction="AlignObjectsCenter"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="ObjectsAlignCenterHorizontalSmart" showLabel="false"
+              screentip="Align Center"
+              supertip="Center the selected shapes horizontally on the first selected shape." />
+          </box>
+          <separator id="alignment.separator1" />
+          <box id="alignment.verticalSpacing" boxStyle="vertical">
+            <control idMso="AlignDistributeVertically" showLabel="false" />
+            <button id="alignment.increaseVerticalSpacing"
+              onAction="IncreaseVerticalSpacing"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="VerticalSpacingIncrease" showLabel="false"
+              screentip="Increase Vertical Spacing"
+              supertip="Add more space between the selected shapes vertically, keeping the group centered." />
+            <button id="alignment.decreaseVerticalSpacing"
+              onAction="DecreaseVerticalSpacing"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="VerticalSpacingDecrease" showLabel="false"
+              screentip="Decrease Vertical Spacing"
+              supertip="Reduce the space between the selected shapes vertically, keeping the group centered." />
+          </box>
+          <separator id="alignment.separator2" />
+          <box id="alignment.horizontalSpacing" boxStyle="vertical">
+            <control idMso="AlignDistributeHorizontally" showLabel="false" />
+            <button id="alignment.increaseHorizontalSpacing"
+              onAction="IncreaseHorizontalSpacing"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="HorizontalSpacingIncrease" showLabel="false"
+              screentip="Increase Horizontal Spacing"
+              supertip="Add more space between the selected shapes horizontally, keeping the group centered." />
+            <button id="alignment.decreaseHorizontalSpacing"
+              onAction="DecreaseHorizontalSpacing"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="HorizontalSpacingDecrease" showLabel="false"
+              screentip="Decrease Horizontal Spacing"
+              supertip="Reduce the space between the selected shapes horizontally, keeping the group centered." />
+          </box>
+        </group>
+        <group id="formatting" label="Formatting" imageMso="FormatPainter">
+          <box id="formatting.actions" boxStyle="vertical">
+            <button id="formatting.copy" onAction="CopyShapeFormatting"
+              getEnabled="EnableWhenOneShapeSelected"
+              image="copyFormatting" showLabel="false"
+              screentip="Copy Formatting"
+              supertip="Copy all formatting of the selected shape, then use the Apply buttons to paste the ones you want." />
+            <button id="formatting.applyAll" tag="all"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="pasteFormatting" showLabel="false"
+              screentip="Apply All Copied Formatting"
+              supertip="Apply all copied formatting to the selected shapes." />
+            <control idMso="FormatPainter" showLabel="false" />
+          </box>
+          <separator id="formatting.separator1" />
+          <box id="formatting.appearance" boxStyle="vertical">
+            <button id="formatting.applyFillColor" tag="fillcolor" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              getImage="GetApplyColorImage"
+              screentip="Apply Fill Color"
+              supertip="Apply the copied fill (solid colour and transparency) to the selected shapes." />
+            <button id="formatting.applyLineStyle" tag="linestyle" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              getImage="GetApplyColorImage"
+              screentip="Apply Line Style"
+              supertip="Apply the copied outline colour, weight, dash and transparency to the selected shapes." />
+            <button id="formatting.applyTextColor" tag="textcolor" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              getImage="GetApplyColorImage"
+              screentip="Apply Text Color"
+              supertip="Apply the copied text colour and transparency to all text in the selected shapes." />
+          </box>
+          <separator id="formatting.separator2" />
+          <box id="formatting.sizePosition" boxStyle="vertical">
+            <button id="formatting.applyWidth" tag="width" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="widthFormatting"
+              screentip="Apply Width"
+              supertip="Apply the copied width to the selected shapes." />
+            <button id="formatting.applyHeight" tag="height" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="heightFormatting"
+              screentip="Apply Height"
+              supertip="Apply the copied height to the selected shapes." />
+            <button id="formatting.applyPosition" tag="position" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="positionFormatting"
+              screentip="Apply Position"
+              supertip="Move the selected shapes to the copied left and top position." />
+          </box>
+          <separator id="formatting.separator3" />
+          <box id="formatting.shape" boxStyle="vertical">
+            <button id="formatting.applyType" tag="type" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="shapeTypeFormatting"
+              screentip="Apply Type"
+              supertip="Change the selected AutoShapes to the copied shape type." />
+            <button id="formatting.applyAngles" tag="angles" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="anglesFormatting"
+              screentip="Apply Angles"
+              supertip="Apply the copied rotation and corner/handle angles (e.g. rounded corners) to the selected shapes." />
+            <button id="formatting.applyMargins" tag="margins" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="marginFormatting"
+              screentip="Apply Margins"
+              supertip="Apply the copied internal text margins to the selected shapes." />
+          </box>
+          <separator id="formatting.separator4" />
+          <box id="formatting.text" boxStyle="vertical">
+            <button id="formatting.applyFontSize" tag="fontsize" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="fontSizeFormatting"
+              screentip="Apply Font Size"
+              supertip="Apply the copied font size to all text in the selected shapes." />
+            <button id="formatting.applyBullet" tag="bullet" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="bulletFormatting"
+              screentip="Apply Bullet"
+              supertip="Apply the copied bullet or numbering to the text of the selected shapes." />
+            <button id="formatting.applyLineSpacing" tag="linespacing" showLabel="false"
+              onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
+              image="lineSpacingFormatting"
+              screentip="Apply Line Spacing"
+              supertip="Apply the copied line spacing and paragraph spacing before and after to the text of the selected shapes." />
+          </box>
+        </group>
+        <group id="table" label="Table" imageMso="TableInsertGallery">
+          <box id="table.insert" boxStyle="vertical">
+            <gallery idMso="TableInsertGallery" showLabel="false" />
+            <button id="table.convert.shapesToTable"
+              onAction="ConvertShapesToTable" getEnabled="EnableWhenShapeGridSelected"
+              image="convertShapesToTable"
+              screentip="Shapes to Table"
+              supertip="Convert the selected shapes, arranged in a grid, into a table with the same text, font and fill colour. The original shapes are deleted." />
+            <button id="table.convert.tableToShapes"
+              onAction="ConvertTableToShapes" getEnabled="EnableWhenTableSelected"
+              image="convertTableToShapes"
+              screentip="Table to Shapes"
+              supertip="Convert the selected table into individual rectangles with the same text, font and fill colour. The table is deleted." />
+          </box>
+          <separator id="table.separator1" />
+          <box id="table.rowsColumns" boxStyle="vertical">
+            <box id="table.rows" boxStyle="horizontal">
+              <control idMso="TableInsertRowsAbove" showLabel="false" />
+              <control idMso="TableInsertRowsBelow" showLabel="false" />
+            </box>
+            <box id="table.columns" boxStyle="horizontal">
+              <control idMso="TableInsertColumnsLeft" showLabel="false" />
+              <control idMso="TableInsertColumnsRight" showLabel="false" />
+            </box>
+            <box id="table.distribute" boxStyle="horizontal">
+              <control idMso="TableColumnsDistribute" showLabel="false" />
+              <control idMso="TableRowsDistribute" showLabel="false" />
+            </box>
+          </box>
+          <separator id="table.separator2" />
+          <box id="table.cells" boxStyle="vertical">
+            <control idMso="MergeCells" showLabel="false" />
+            <control idMso="SplitCells" showLabel="false" />
+          </box>
+          <separator id="table.separator3" />
+          <box id="table.delete" boxStyle="vertical">
+            <button id="table.deleteRows" tag="TableDeleteRows"
+              onAction="ExecuteTableCommand" getEnabled="EnableWhenTableActive"
+              imageMso="TableDeleteRows" showLabel="false"
+              screentip="Delete Rows"
+              supertip="Delete the selected rows of the table." />
+            <button id="table.deleteColumns" tag="TableDeleteColumns"
+              onAction="ExecuteTableCommand" getEnabled="EnableWhenTableActive"
+              imageMso="TableDeleteColumns" showLabel="false"
+              screentip="Delete Columns"
+              supertip="Delete the selected columns of the table." />
+            <button id="table.deleteTable" tag="TableDelete"
+              onAction="ExecuteTableCommand" getEnabled="EnableWhenTableActive"
+              imageMso="TableDelete" showLabel="false"
+              screentip="Delete Table"
+              supertip="Delete the entire table." />
+          </box>
+        </group>
+        <group id="language" label="Language" imageMso="SetLanguage">
+          <menu id="language.menu" image="language"
+            screentip="Set Language"
+            supertip="Set the editing/proofing language for all text on every slide, slide master, and layout.">
+            <button id="language.en" label="English"
+              onAction="SetLanguageEnglish" image="flagGb" />
+            <button id="language.fr" label="French"
+              onAction="SetLanguageFrench" image="flagFr" />
+            <button id="language.nl" label="Dutch"
+              onAction="SetLanguageDutch" image="flagNl" />
+          </menu>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+  <contextMenus>
+    <contextMenu idMso="ContextMenuThumbnail">
+      <button id="archive"
+        onAction="ArchiveSelectedSlides"
+        getVisible="GetArchiveVisible"
+        image="archiveSlide"
+        label="Archive"
+        screentip="Archive"
+        supertip="Move the selected slide(s) into a section named Archive at the end of the presentation." />
+      <button id="unarchive"
+        onAction="UnarchiveSelectedSlides"
+        getVisible="GetUnarchiveVisible"
+        image="unarchiveSlide"
+        label="Unarchive"
+        screentip="Unarchive"
+        supertip="Move the selected slide(s) out of the Archive section back into the presentation." />
+      <menuSeparator id="archive.separator" />
+    </contextMenu>
+  </contextMenus>
+</customUI>

@@ -1,0 +1,8 @@
+- smartResize
+- symetry (vertical, horizontal)
+- stack (next to each other)
+- organize
+- select (by same height)
+- icon library
+- sanity check
+- settings popup
