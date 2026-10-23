@@ -1,5 +1,17 @@
 # Contributing
 
+## Workflow
+
+Contributions are made through a fork and pull request:
+
+1. Fork this repository on GitHub.
+2. Clone your fork and create a branch for your change.
+3. Make your changes, then [build](#building) and test the add-in in PowerPoint.
+4. Commit using [Conventional Commits](#commits-and-releases) and push the branch to your fork.
+5. Open a pull request from your branch to this repository's `main` branch.
+
+Only maintainers run the release steps under [Commits and releases](#commits-and-releases).
+
 ## Building
 
 `scripts/build.py` packages the sources under `src/` into `dist/All-in-one-v<version>.ppam`, a PowerPoint add-in you install once and use across all presentations.
@@ -62,13 +74,10 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/). One
 
 ```powershell
 uv sync
-uv run pre-commit install
 $env:GH_TOKEN = "<token>"
 ```
 
-Hooks are managed by [pre-commit](https://pre-commit.com/) (see `.pre-commit-config.yaml`): `commit-msg` validates Conventional Commits, `uv-lock` keeps `uv.lock` in sync with `pyproject.toml`, and `uv-sync` refreshes `.venv` after checkout, pull or rebase.
-
-- `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits. The `commit-msg` hook rejects non-conventional messages from plain `git commit`.
+- `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
 - `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md`, builds the zip, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with the zip attached. Close PowerPoint first.
 - `uv run semantic-release --noop version` previews the release without changing anything; `--major`, `--minor` or `--patch` overrides the level.
 
