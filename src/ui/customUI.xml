@@ -126,6 +126,21 @@
               image="lockOpen" showLabel="false"
               screentip="Aspect Ratio Unlocked"
               supertip="Width and height resize independently for the selected shape(s). Click to lock proportionally." />
+            <button id="size.sameWidth" onAction="ObjectsSameWidth"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              image="sameWidth" showLabel="false"
+              screentip="Same Width"
+              supertip="Resize all selected shapes to match the width of the first-selected shape." />
+            <button id="size.sameHeight" onAction="ObjectsSameHeight"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              image="sameHeight" showLabel="false"
+              screentip="Same Height"
+              supertip="Resize all selected shapes to match the height of the first-selected shape." />
+            <button id="size.sameSize" onAction="ObjectsSameSize"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              image="sameSize" showLabel="false"
+              screentip="Same Size"
+              supertip="Resize all selected shapes to match the size of the first-selected shape." />
             <!-- <button id="size.smartResize" onAction="SmartResize"
                 getEnabled="EnableWhenMultipleShapesSelected"
                 image="smartResize" showLabel="false"

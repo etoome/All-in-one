@@ -1,6 +1,61 @@
 Attribute VB_Name = "Size"
 Option Explicit
 
+' Ribbon onAction callback: resize all selected shapes to match the first-selected shape's height.
+Sub ObjectsSameHeight(control As IRibbonControl)
+    Dim shapes As ShapeRange
+    Dim referenceHeight As Single
+    Dim i As Long
+
+    If SelectedShapeCount < 2 Then Exit Sub
+
+    Set shapes = ActiveWindow.Selection.ShapeRange
+    referenceHeight = shapes(1).Height
+
+    For i = 2 To shapes.Count
+        shapes(i).Height = referenceHeight
+    Next i
+End Sub
+
+' Ribbon onAction callback: resize all selected shapes to match the first-selected shape's width.
+Sub ObjectsSameWidth(control As IRibbonControl)
+    Dim shapes As ShapeRange
+    Dim referenceWidth As Single
+    Dim i As Long
+
+    If SelectedShapeCount < 2 Then Exit Sub
+
+    Set shapes = ActiveWindow.Selection.ShapeRange
+    referenceWidth = shapes(1).Width
+
+    For i = 2 To shapes.Count
+        shapes(i).Width = referenceWidth
+    Next i
+End Sub
+
+' Ribbon onAction callback: resize all selected shapes to match the first-selected shape's width and height.
+Sub ObjectsSameSize(control As IRibbonControl)
+    Dim shapes As ShapeRange
+    Dim referenceWidth As Single
+    Dim referenceHeight As Single
+    Dim wasLocked As MsoTriState
+    Dim i As Long
+
+    If SelectedShapeCount < 2 Then Exit Sub
+
+    Set shapes = ActiveWindow.Selection.ShapeRange
+    referenceWidth = shapes(1).Width
+    referenceHeight = shapes(1).Height
+
+    For i = 2 To shapes.Count
+        wasLocked = shapes(i).LockAspectRatio
+        shapes(i).LockAspectRatio = msoFalse ' otherwise setting width rescales height
+        shapes(i).Width = referenceWidth
+        shapes(i).Height = referenceHeight
+        shapes(i).LockAspectRatio = wasLocked
+    Next i
+End Sub
+
 ' Ribbon onAction callback: locks width-height proportion for all selected shapes.
 Sub LockAspectRatio(control As IRibbonControl)
     SetAspectRatioLock True
