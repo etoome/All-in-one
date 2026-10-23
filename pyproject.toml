@@ -28,8 +28,8 @@ tag_format = "v{version}"
 commit_message = "chore(release): v{version}"
 allow_zero_version = true
 major_on_zero = false
-# Runs after the version is stamped and before the release commit, so a failed build aborts the release.
-build_command = "uv run scripts/build.py"
+assets = ["uv.lock"]
+build_command = "uv run --upgrade-package all-in-one scripts/build.py"
 
 [tool.semantic_release.branches.main]
 match = "main"

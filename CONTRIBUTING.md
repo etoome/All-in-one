@@ -78,7 +78,7 @@ $env:GH_TOKEN = "<token>"
 ```
 
 - `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md`, builds the zip, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with the zip attached. Close PowerPoint first.
+- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the zip, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with the zip attached. Close PowerPoint first.
 - `uv run semantic-release --noop version` previews the release without changing anything; `--major`, `--minor` or `--patch` overrides the level.
 
 ## References
