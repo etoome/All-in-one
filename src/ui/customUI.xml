@@ -141,12 +141,6 @@
               image="sameSize" showLabel="false"
               screentip="Same Size"
               supertip="Resize all selected shapes to match the size of the first-selected shape." />
-            <!-- <button id="size.smartResize" onAction="SmartResize"
-                getEnabled="EnableWhenMultipleShapesSelected"
-                image="smartResize" showLabel="false"
-                screentip="Smart Resize"
-                supertip="Resize all selected shapes proportionally to match the new size of the first-selected
-                  shape." /> -->
           </box>
           <dialogBoxLauncher>
             <button id="size.dialog" onAction="ShowSizeAndPositionDialog"
@@ -192,39 +186,39 @@
           imageMso="ObjectsAlignLeftSmart">
           <box id="alignment.vertical" boxStyle="horizontal">
             <button id="alignment.top" onAction="AlignObjectsTop"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignTopSmart" showLabel="false"
               screentip="Align Top"
-              supertip="Align the top edges of the selected shapes to the first selected shape." />
+              supertip="Align the top edges of the selected shapes to the first selected shape, or the shape to the top of the slide when only one is selected." />
             <button id="alignment.bottom" onAction="AlignObjectsBottom"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignBottomSmart" showLabel="false"
               screentip="Align Bottom"
-              supertip="Align the bottom edges of the selected shapes to the first selected shape." />
+              supertip="Align the bottom edges of the selected shapes to the first selected shape, or the shape to the bottom of the slide when only one is selected." />
           </box>
           <box id="alignment.horizontal" boxStyle="horizontal">
             <button id="alignment.left" onAction="AlignObjectsLeft"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignLeftSmart" showLabel="false"
               screentip="Align Left"
-              supertip="Align the left edges of the selected shapes to the first selected shape." />
+              supertip="Align the left edges of the selected shapes to the first selected shape, or the shape to the left of the slide when only one is selected." />
             <button id="alignment.right" onAction="AlignObjectsRight"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignRightSmart" showLabel="false"
               screentip="Align Right"
-              supertip="Align the right edges of the selected shapes to the first selected shape." />
+              supertip="Align the right edges of the selected shapes to the first selected shape, or the shape to the right of the slide when only one is selected." />
           </box>
           <box id="alignment.middleCenter" boxStyle="horizontal">
             <button id="alignment.middle" onAction="AlignObjectsMiddle"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignMiddleVerticalSmart" showLabel="false"
               screentip="Align Middle"
-              supertip="Center the selected shapes vertically on the first selected shape." />
+              supertip="Center the selected shapes vertically on the first selected shape, or the shape vertically on the slide when only one is selected." />
             <button id="alignment.center" onAction="AlignObjectsCenter"
-              getEnabled="EnableWhenMultipleShapesSelected"
+              getEnabled="EnableWhenShapeSelected"
               imageMso="ObjectsAlignCenterHorizontalSmart" showLabel="false"
               screentip="Align Center"
-              supertip="Center the selected shapes horizontally on the first selected shape." />
+              supertip="Center the selected shapes horizontally on the first selected shape, or the shape horizontally on the slide when only one is selected." />
           </box>
           <separator id="alignment.separator1" />
           <box id="alignment.verticalSpacing" boxStyle="vertical">
@@ -297,12 +291,12 @@
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
               image="widthFormatting"
               screentip="Apply Width"
-              supertip="Apply the copied width to the selected shapes." />
+              supertip="Apply the copied width to the selected shapes, ignoring the aspect ratio lock." />
             <button id="formatting.applyHeight" tag="height" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
               image="heightFormatting"
               screentip="Apply Height"
-              supertip="Apply the copied height to the selected shapes." />
+              supertip="Apply the copied height to the selected shapes, ignoring the aspect ratio lock." />
             <button id="formatting.applyPosition" tag="position" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
               image="positionFormatting"
