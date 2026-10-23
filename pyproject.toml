@@ -1,6 +1,6 @@
 [project]
 name = "all-in-one"
-version = "0.0.0"
+version = "1.0.0"
 description = "PowerPoint ribbon add-in combining built-in commands and VBA tools."
 requires-python = ">=3.11"
 dependencies = [
@@ -17,6 +17,7 @@ dev = [
 [tool.uv]
 # Scripts project: nothing to build or install, only dependencies.
 package = false
+system-certs = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
