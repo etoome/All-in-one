@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.0.2 (2026-10-23)
+
+### Bug Fixes
+
+- **semantic_release**: Build command chaining
+  ([`4a25304`](https://github.com/etoome/All-in-one/commit/4a25304ba08b8ea056cf33f00d3819944f0f3ba5))
+
+- **semantic_release**: Do not publish uv.lock
+  ([`3b9b096`](https://github.com/etoome/All-in-one/commit/3b9b096fe8bf9bc7c3cdde5b602f6d2830ca3780))
+
+
 ## v1.0.1 (2026-10-23)
 
 ### Bug Fixes
