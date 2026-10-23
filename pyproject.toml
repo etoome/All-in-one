@@ -41,5 +41,5 @@ changelog_file = "CHANGELOG.md"
 type = "github"
 
 [tool.semantic_release.publish]
-dist_glob_patterns = ["dist/*.zip"]
+dist_glob_patterns = ["dist/Install.ps1", "dist/*.ppam"]
 upload_to_vcs_release = true

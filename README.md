@@ -8,22 +8,28 @@ All-in-one adds a tab at the start of your ribbon that gathers the commands you 
 
 You need Windows and the desktop version of PowerPoint.
 
-1. Download the latest `All-in-one` zip from [Releases](../../releases/latest).
-2. Extract it.
-3. Double-click `Install.cmd`.
-4. Restart PowerPoint. The **All-in-one** tab appears at the start of the ribbon.
+Run this in PowerShell:
 
-To update, download the new version and run `Install.cmd` again.
-
-## Uninstall
-
-Open a command prompt in the extracted folder and run:
-
+```powershell
+irm https://github.com/etoome/All-in-one/releases/latest/download/Install.ps1 | iex
 ```
-Install.cmd -Uninstall
+
+Restart PowerPoint. The **All-in-one** tab appears at the start of the ribbon.
+
+To update, run the same command again.
+
+<details>
+<summary>Uninstall</summary>
+
+Run this in PowerShell:
+
+```powershell
+iex "& { $(irm https://github.com/etoome/All-in-one/releases/latest/download/Install.ps1) } -Uninstall"
 ```
 
 Restart PowerPoint and the tab is gone.
+
+</details>
 
 ## For developers
 

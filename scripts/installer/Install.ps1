@@ -1,8 +1,7 @@
 #Requires -Version 5.1
 <#
     Installs (or removes) the All-in-one .ppam as a PowerPoint add-in for the current user.
-    Expects the built .ppam file to sit next to this script (both live in the .bin
-    folder of the release zip), named after its version, e.g. All-in-one-v0.1.0.ppam.
+    Uses a .ppam beside this script, or downloads the matching release asset.
 #>
 [CmdletBinding()]
 param(
@@ -44,9 +43,10 @@ function Invoke-FileOp {
 
 Write-Banner
 
-$ppamFile    = Get-ChildItem -Path $PSScriptRoot -Filter '*.ppam' -File -ErrorAction SilentlyContinue | Select-Object -First 1
-$installDir  = Join-Path $env:APPDATA 'Microsoft\AddIns'
-$installPath = if ($ppamFile) { Join-Path $installDir $ppamFile.Name } else { $null }
+$ppamFile = if ($PSScriptRoot) {
+    Get-ChildItem -Path $PSScriptRoot -Filter '*.ppam' -File -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+$installDir = Join-Path $env:APPDATA 'Microsoft\AddIns'
 $addInName   = 'All-in-one'
 
 # Locate the installed PowerPoint version so we can write its AutoLoad registry entry.
@@ -79,23 +79,42 @@ if ($Uninstall) {
     Write-Host ""
 }
 else {
-    if (-not $ppamFile) { throw "No .ppam file found next to this script: $PSScriptRoot" }
+    $downloadDirectory = $null
+    if (-not $ppamFile) {
+        $downloadDirectory = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $downloadPath = Join-Path $downloadDirectory 'All-in-one-v@@VERSION@@.ppam'
+        $downloadUrl = 'https://github.com/etoome/All-in-one/releases/download/v@@VERSION@@/All-in-one-v@@VERSION@@.ppam'
+        Write-Step "Downloading All-in-one v@@VERSION@@ from GitHub..."
+        try { Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath -UseBasicParsing }
+        catch {
+            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
+            throw
+        }
+        $ppamFile = Get-Item -Path $downloadPath
+    }
+    $installPath = Join-Path $installDir $ppamFile.Name
 
-    Write-Step "Copying add-in to $installDir..."
-    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-    Remove-InstalledAddIns
-    Invoke-FileOp { Copy-Item -Path $ppamFile.FullName -Destination $installPath -Force }
-    # Strip Mark-of-the-Web (from downloading/extracting the zip) so PowerPoint trusts
-    # the add-in and doesn't raise the macro security prompt on startup.
-    Unblock-File -Path $installPath
+    try {
+        Write-Step "Copying add-in to $installDir..."
+        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+        Remove-InstalledAddIns
+        Invoke-FileOp { Copy-Item -Path $ppamFile.FullName -Destination $installPath -Force }
+        # Strip Mark-of-the-Web so PowerPoint trusts the add-in at startup.
+        Unblock-File -Path $installPath
 
-    Write-Step "Registering auto-load entry..."
-    New-Item -Path $registryKey -Force | Out-Null
-    New-ItemProperty -Path $registryKey -Name 'Path'     -Value $installPath -PropertyType String -Force | Out-Null
-    New-ItemProperty -Path $registryKey -Name 'AutoLoad' -Value 1            -PropertyType DWord  -Force | Out-Null
+        Write-Step "Setting PowerPoint to load All-in-one at startup..."
+        New-Item -Path $registryKey -Force | Out-Null
+        New-ItemProperty -Path $registryKey -Name 'Path'     -Value $installPath -PropertyType String -Force | Out-Null
+        New-ItemProperty -Path $registryKey -Name 'AutoLoad' -Value 1            -PropertyType DWord  -Force | Out-Null
 
-    Write-Ok "Installed: $installPath"
-    Write-Host ""
-    Write-Note "Restart PowerPoint to activate the All-in-one tab."
-    Write-Host ""
+        Write-Ok "Installed: $installPath"
+        Write-Host ""
+        Write-Note "Restart PowerPoint to activate the All-in-one tab."
+        Write-Host ""
+    }
+    finally {
+        if ($downloadDirectory) { Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue }
+    }
 }

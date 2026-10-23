@@ -32,28 +32,25 @@ uv run scripts/build.py
 
 The first run creates `.venv` and installs the dependencies pinned in `uv.lock`; later runs reuse it.
 
-This launches PowerPoint in the background, imports the modules from `src/modules/`, saves the result as `dist/All-in-one-v<version>.ppam`, then injects `src/ui/customUI.xml` as the ribbon customization part. It then generates the installer files and packages everything into `dist/All-in-one-v<version>.zip` for distribution, with this layout:
+This launches PowerPoint in the background, imports the modules from `src/modules/`, saves the result as `dist/All-in-one-v<version>.ppam`, then injects `src/ui/customUI.xml` as the ribbon customization part. It also renders `dist/Install.ps1` for release and local installation. The release assets are:
 
 ```
-Install.cmd
-README.md
-.bin/
-    All-in-one-v<version>.ppam
-    Install.ps1
+Install.ps1
+All-in-one-v<version>.ppam
 ```
 
 The version comes from `--version`, else from `version` in `pyproject.toml`.
 
-Installer files shipped in the zip live in `scripts/installer/`.
+The installer template lives in `scripts/installer/`.
 
 Close PowerPoint first if the add-in is currently loaded, since the output file is locked while in use.
 
 ### Install
 
-Extract `dist/All-in-one-v<version>.zip`, then double-click `Install.cmd`, or from PowerShell:
+Run from the repository root in PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\.bin\Install.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\dist\Install.ps1"
 ```
 
 This copies the `.ppam` into your per-user PowerPoint Add-ins folder and registers it to auto-load. Restart PowerPoint for the tab to appear.
@@ -61,12 +58,10 @@ This copies the `.ppam` into your per-user PowerPoint Add-ins folder and registe
 To remove it:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ".\.bin\Install.ps1" -Uninstall
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\dist\Install.ps1" -Uninstall
 ```
 
-or run `Install.cmd -Uninstall` from a command prompt.
-
-Re-run `uv run scripts/build.py` after changing anything under `src/`, then re-extract the zip and re-run `Install.cmd` (or restart PowerPoint if the add-in is already loaded) to pick up the changes.
+Re-run `uv run scripts/build.py` after changing anything under `src/`, then run `powershell -NoProfile -ExecutionPolicy Bypass -File ".\dist\Install.ps1"` again (or restart PowerPoint if the add-in is already loaded) to pick up the changes.
 
 ## Commits and releases
 
@@ -78,7 +73,7 @@ $env:GH_TOKEN = "<token>"
 ```
 
 - `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the zip, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with the zip attached. Close PowerPoint first.
+- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the release assets, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with `Install.ps1` and the versioned `.ppam` attached. Close PowerPoint first.
 - `uv run semantic-release --noop version` previews the release without changing anything; `--major`, `--minor` or `--patch` overrides the level.
 
 ## References

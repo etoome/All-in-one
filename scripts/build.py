@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build dist/All-in-one-v<version>.zip: a PowerPoint add-in (.ppam) with the VBA modules and ribbon XML, plus installer files.
+"""Build dist/Install.ps1 and dist/All-in-one-v<version>.ppam for release.
 
 Requires Windows with desktop PowerPoint, and "Trust access to the VBA project object model" enabled.
 """
@@ -11,7 +11,6 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 import tomllib
 import xml.etree.ElementTree as ET
 import zipfile
@@ -50,8 +49,6 @@ CONTENT_TYPES_PART = "[Content_Types].xml"
 CUSTOM_UI_PART = "customUI/customUI.xml"
 CUSTOM_UI_RELS_PART = "customUI/_rels/customUI.xml.rels"
 PRESENTATION_PART = "/ppt/presentation.xml"
-
-INSTALLER_SUBFOLDER = ".bin"
 
 
 def resolve_version(cli_version: str | None) -> str:
@@ -217,26 +214,10 @@ def render_installer_file(name: str, version: str) -> str:
     return (INSTALLER_DIR / name).read_text(encoding="utf-8").replace("@@VERSION@@", version)
 
 
-def package_release(ppam_file: Path, version: str, zip_file: Path) -> None:
-    print("Packaging release zip...")
-    ppam_name = f"All-in-one-v{version}.ppam"
-    # Batch files are safest as ASCII with CRLF line endings.
-    install_cmd = render_installer_file("Install.cmd", version).replace("\r\n", "\n").replace("\n", "\r\n")
-
-    def entry(name: str) -> zipfile.ZipInfo:
-        info = zipfile.ZipInfo(name, time.localtime()[:6])
-        info.compress_type = zipfile.ZIP_DEFLATED
-        return info
-
-    with zipfile.ZipFile(zip_file, "w") as package:
-        # Explorer and 7-Zip honor this hidden flag on extract; Expand-Archive ignores it (Install.cmd re-applies it).
-        folder = entry(f"{INSTALLER_SUBFOLDER}/")
-        folder.external_attr = 0x12
-        package.writestr(folder, b"")
-        package.writestr(entry("Install.cmd"), install_cmd.encode("ascii"))
-        package.writestr(entry("README.md"), render_installer_file("README.md", version).encode("utf-8"))
-        package.writestr(entry(f"{INSTALLER_SUBFOLDER}/Install.ps1"), render_installer_file("Install.ps1", version).encode("utf-8"))
-        package.write(ppam_file, f"{INSTALLER_SUBFOLDER}/{ppam_name}", zipfile.ZIP_DEFLATED)
+def write_release_assets(version: str) -> None:
+    print("Writing release assets...")
+    installer_file = DIST_DIR / "Install.ps1"
+    installer_file.write_text(render_installer_file("Install.ps1", version), encoding="utf-8")
 
 
 def main() -> int:
@@ -250,9 +231,8 @@ def main() -> int:
     if not module_files:
         sys.exit(f"No .bas/.cls modules found in {MODULES_DIR} or {CLASSES_DIR}")
 
-    ppam_file = DIST_DIR / "All-in-one.ppam"
+    ppam_file = DIST_DIR / f"All-in-one-v{version}.ppam"
     pptm_file = DIST_DIR / "All-in-one.pptm"
-    zip_file = DIST_DIR / f"All-in-one-v{version}.zip"
 
     shutil.rmtree(DIST_DIR, ignore_errors=True)
     DIST_DIR.mkdir(parents=True)
@@ -260,10 +240,9 @@ def main() -> int:
     build_macro_presentation(module_files, pptm_file)
     inject_ribbon(pptm_file, ppam_file)
     verify_package(ppam_file)
-    package_release(ppam_file, version, zip_file)
-    ppam_file.unlink()
+    write_release_assets(version)
 
-    print(f"Release zip: {zip_file}")
+    print(f"Release assets: {DIST_DIR / 'Install.ps1'}, {ppam_file}")
     return 0
 
 
