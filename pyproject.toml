@@ -1,6 +1,6 @@
 [project]
 name = "all-in-one"
-version = "1.0.2"
+version = "1.0.3"
 description = "PowerPoint ribbon add-in combining built-in commands and VBA tools."
 requires-python = ">=3.11"
 dependencies = [

@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.3 (2026-10-23)
+
+### Bug Fixes
+
+- Immutable release
+  ([`9ed0483`](https://github.com/etoome/All-in-one/commit/9ed0483c7b625e6bd6544e4ab3c60c9378a4a7ad))
+
+
 ## v1.0.2 (2026-10-23)
 
 ### Bug Fixes
