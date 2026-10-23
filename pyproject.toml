@@ -1,0 +1,45 @@
+[project]
+name = "all-in-one"
+version = "1.0.0"
+description = "PowerPoint ribbon add-in combining built-in commands and VBA tools."
+requires-python = ">=3.11"
+dependencies = [
+    "pywin32; sys_platform == 'win32'",
+    "Pillow>=9.1",
+]
+
+[dependency-groups]
+dev = [
+    "commitizen",
+    "pre-commit",
+    "python-semantic-release",
+]
+
+[tool.uv]
+# Scripts project: nothing to build or install, only dependencies.
+package = false
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+tag_format = "v{version}"
+commit_message = "chore(release): v{version}"
+allow_zero_version = true
+major_on_zero = false
+# Runs after the version is stamped and before the release commit, so a failed build aborts the release.
+build_command = "uv run scripts/build.py"
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+
+[tool.semantic_release.remote]
+type = "github"
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*.zip"]
+upload_to_vcs_release = true

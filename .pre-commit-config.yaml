@@ -1,0 +1,22 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - post-checkout
+  - post-merge
+  - post-rewrite
+
+repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.13.5
+    hooks:
+      - id: uv-lock
+      - id: uv-sync
+
+  - repo: local
+    hooks:
+      - id: commitizen
+        name: commitizen check
+        # Runs the cz pinned in uv.lock instead of a second copy pinned here.
+        entry: uv run --frozen cz check --commit-msg-file
+        language: system
+        stages: [commit-msg]
