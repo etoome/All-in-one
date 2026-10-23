@@ -73,7 +73,7 @@ $env:GH_TOKEN = "<token>"
 ```
 
 - `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the release assets, commits, tags `v<version>` and pushes. `uv run semantic-release publish` then creates the GitHub Release with `Install.ps1` and the versioned `.ppam` attached. Close PowerPoint first.
+- `uv run semantic-release version` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the release assets, commits, tags `v<version>` and pushes. `uv.lock` is staged by the build command so it is committed without being uploaded as a GitHub release asset. `uv run semantic-release publish` then uploads `Install.ps1` and the versioned `.ppam` to the GitHub Release. Close PowerPoint first.
 - `uv run semantic-release --noop version` previews the release without changing anything; `--major`, `--minor` or `--patch` overrides the level.
 
 ## References
