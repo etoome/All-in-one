@@ -28,7 +28,7 @@ tag_format = "v{version}"
 commit_message = "chore(release): v{version}"
 allow_zero_version = true
 major_on_zero = false
-build_command = "uv run --upgrade-package all-in-one scripts/build.py && git add uv.lock"
+build_command = 'cmd /c "uv run --upgrade-package all-in-one scripts/build.py && git add uv.lock"'
 
 [tool.semantic_release.branches.main]
 match = "main"
