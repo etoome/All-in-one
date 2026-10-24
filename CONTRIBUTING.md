@@ -65,17 +65,29 @@ Re-run `uv run scripts/build.py` after changing anything under `src/`, then run 
 
 ## Commits and releases
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/). One-time setup (requires [uv](https://docs.astral.sh/uv/) and a GitHub token with `contents: write` access to this repository, exported as `GH_TOKEN`):
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/). To write one interactively, run `uv run cz commit` (or `uv run cz c`) after `uv sync`.
+
+### Releasing
+
+Set up once, then set `GH_TOKEN` in each new shell. The token needs `contents: write` access to this repository.
 
 ```powershell
 uv sync
 $env:GH_TOKEN = "<token>"
 ```
 
-- `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run cz bump` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), adds a versioned section to `CHANGELOG.md`, builds the release assets (which refreshes `uv.lock`), commits with `git commit -a`, tags `v<version>` locally (push with `git push origin main --follow-tags`). Start from a clean working tree, since every tracked change goes into the release commit, and close PowerPoint first. Avoid running `cz changelog` by itself; it generates an `Unreleased` section.
-- `uv run scripts/release.py` creates the GitHub Release as a draft, uploads `Install.ps1` and the versioned `.ppam`, then publishes it after you press Enter (Ctrl+C keeps the draft). This order is required for repositories with immutable releases, which lock assets on publish. If an upload fails the draft is left in place; delete it and re-run.
-- `uv run cz bump --dry-run` previews the release without changing anything; `--increment MAJOR`, `MINOR` or `PATCH` overrides the level.
+Start on `main` with a clean working tree and PowerPoint closed, because the bump runs the build.
+
+1. **Preview (optional):** `uv run cz bump --dry-run` shows the next version and changelog without changing anything.
+2. **Bump:** `uv run cz bump` updates the version in `pyproject.toml` and `CHANGELOG.md`, builds the assets into `dist/`, commits `chore(release): v<version>`, and creates an annotated local tag. To override the bump level detected from commits, add `--increment MAJOR`, `MINOR` or `PATCH`.
+3. **Push:** `git push origin main --follow-tags`.
+4. **Publish:** `uv run scripts/release.py` creates a draft GitHub Release that uses the notes from `CHANGELOG.md`, then uploads the assets. Press Enter to publish it, or Ctrl+C to keep it as a draft.
+
+Notes:
+
+- Don't run `cz changelog` by itself because it adds an `Unreleased` section.
+- The script uploads assets before publishing because immutable releases lock assets once published.
+- If an upload fails, the draft stays on GitHub. Delete it and rerun the script.
 
 ## References
 
