@@ -5,7 +5,8 @@ Option Explicit
 ' Pure VBA + built-in Windows components, so it needs no PowerShell, scheduled task or admin rights.
 
 Private Declare PtrSafe Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteW" (ByVal hwnd As LongPtr, ByVal lpOperation As LongPtr, ByVal lpFile As LongPtr, ByVal lpParameters As LongPtr, ByVal lpDirectory As LongPtr, ByVal nShowCmd As Long) As LongPtr
-Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare PtrSafe Function URLDownloadToFileW Lib "urlmon" (ByVal pCaller As LongPtr, ByVal szURL As LongPtr, ByVal szFileName As LongPtr, ByVal dwReserved As Long, ByVal lpfnCB As LongPtr) As Long
+Private Declare PtrSafe Function DeleteUrlCacheEntryW Lib "wininet" (ByVal lpszUrlName As LongPtr) As Long
 Private Declare PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt.dll" (ByRef phAlgorithm As LongPtr, ByVal pszAlgId As LongPtr, ByVal pszImplementation As LongPtr, ByVal dwFlags As Long) As Long
 Private Declare PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt.dll" (ByVal hAlgorithm As LongPtr, ByVal dwFlags As Long) As Long
 Private Declare PtrSafe Function BCryptHash Lib "bcrypt.dll" (ByVal hAlgorithm As LongPtr, ByVal pbSecret As LongPtr, ByVal cbSecret As Long, ByVal pbInput As LongPtr, ByVal cbInput As Long, ByVal pbOutput As LongPtr, ByVal cbOutput As Long) As Long
@@ -35,7 +36,8 @@ Private gSnoozedVersion As String
 Private gSnoozedUntil As Date
 Private gUpdateAvailable As Boolean
 Private gBusy As Boolean
-
+Private gProgress As Boolean
+Private gStepFraction As Double
 ' ---- Ribbon callbacks ----
 
 Sub GetUpdateVisible(control As IRibbonControl, ByRef returnedVal)
@@ -89,7 +91,7 @@ Public Sub PollUpdateCheck()
     Dim found As Boolean
 
     On Error GoTo Failed
-    If gRequest.readyState < 4 Then
+    If Not RequestDone() Then
         If Now > gDeadline Then
             gRequest.abort
             GoTo Failed
@@ -109,23 +111,47 @@ Public Sub PollUpdateCheck()
         gUpdateAvailable = (CompareVersions(gLatestVersion, APP_VERSION) > 0)
         RefreshRibbon
     ElseIf stage = STAGE_MANIFEST Then
-        ' The release asset may be blocked while the Atom feed still works; it can only announce, not install.
-        BeginRequest REPO_URL & "/releases.atom", STAGE_FEED
+        BeginFeedRequest
     End If
+    Exit Sub
+Failed:
+    If stage = 0 Then stage = gStage
+    Set gRequest = Nothing
+    gStage = 0
+    If stage = STAGE_MANIFEST Then BeginFeedRequest
+End Sub
+
+' The release asset may be blocked while the Atom feed still works; the feed can only announce, not install.
+Private Sub BeginFeedRequest()
+    On Error GoTo Failed
+    BeginRequest REPO_URL & "/releases.atom", STAGE_FEED
     Exit Sub
 Failed:
     Set gRequest = Nothing
     gStage = 0
 End Sub
 
+' The asset URL redirects to another host, which XMLHTTP refuses (status 0), so the manifest uses WinHTTP.
 Private Sub BeginRequest(ByVal url As String, ByVal stage As Long)
-    Set gRequest = CreateHttp()
+    If stage = STAGE_MANIFEST Then Set gRequest = CreateWinHttp() Else Set gRequest = CreateHttp()
     gRequest.Open "GET", url, True
     gRequest.setRequestHeader "User-Agent", "All-in-one/" & APP_VERSION
     gRequest.Send
     gStage = stage
     gDeadline = DateAdd("s", CHECK_TIMEOUT_SECONDS, Now)
 End Sub
+
+Private Function RequestDone() As Boolean
+    If gStage = STAGE_MANIFEST Then
+        RequestDone = gRequest.WaitForResponse(0)
+    Else
+        RequestDone = (gRequest.readyState = 4)
+    End If
+End Function
+
+Private Function CreateWinHttp() As Object
+    Set CreateWinHttp = CreateObject("WinHttp.WinHttpRequest.5.1")
+End Function
 
 ' XMLHTTP uses WinINet, so it follows the user's proxy settings and credentials.
 Private Function CreateHttp() As Object
@@ -268,24 +294,24 @@ Private Sub RunInstall()
     Dim ver As String
     Dim fileName As String
     Dim sha As String
-    Dim manual As Boolean
 
-    ' A background check can replace the globals while the download pumps events.
+    ProgressBegin "Updating All-in-one..."
+    On Error GoTo Failed
+    If Len(gLatestFile) = 0 Then
+        ProgressStep 0.1, "Checking release..."
+        reason = FetchManifest(gLatestVersion)
+        If Len(reason) > 0 Then GoTo Failed
+    End If
+    ' A background check can replace the globals while the progress dialog pumps events.
     ver = gLatestVersion
     fileName = gLatestFile
     sha = gLatestSha
-    manual = (Len(fileName) = 0)
-    If Not ShowUpdateDialog("All-in-one v" & ver & " is available (you have v" & APP_VERSION & ")." & vbCrLf & vbCrLf & _
-            "The update takes effect after you restart PowerPoint.", "View changelog", REPO_URL & "/blob/main/CHANGELOG.md", _
-            IIf(manual, "Open download page", "Install now")) Then Exit Sub
-    If manual Then
-        OpenUrl REPO_URL & "/releases/latest"
-        Exit Sub
-    End If
 
-    On Error GoTo Failed
+    ProgressStep 0.25, "Downloading v" & ver & "..."
     reason = DownloadBytes(REPO_URL & "/releases/download/v" & ver & "/" & fileName, data)
     If Len(reason) > 0 Then GoTo Failed
+
+    ProgressStep 0.7, "Verifying..."
     If UBound(data) < 3 Or data(0) <> &H50 Or data(1) <> &H4B Then
         reason = "The downloaded file is not a valid add-in."
         GoTo Failed
@@ -295,6 +321,7 @@ Private Sub RunInstall()
         GoTo Failed
     End If
 
+    ProgressStep 0.85, "Installing..."
     target = InstallFolder() & LocalFileName(ver)
     temp = target & ".tmp"
     If Not WriteBinary(temp, data) Then
@@ -314,69 +341,127 @@ Private Sub RunInstall()
 
     gUpdateAvailable = False
     RefreshRibbon
-    ShowUpdateDialog "v" & ver & " is ready. Restart PowerPoint to finish the update.", "", "", ""
+    ProgressStep 1, "Done."
+    ProgressFinish "v" & ver & " is ready. Restart PowerPoint to finish the update.", "", ""
     Exit Sub
 
 Failed:
     If Len(reason) = 0 Then reason = "Unexpected error: " & Err.Description
     On Error Resume Next
     If Len(temp) > 0 Then Kill temp
-    ShowUpdateDialog "The update could not be installed." & vbCrLf & reason & vbCrLf & vbCrLf & _
-        "You can download it manually instead.", "Open download page", REPO_URL & "/releases/latest", ""
+    ProgressFinish "The update could not be installed." & vbCrLf & reason & vbCrLf & vbCrLf & _
+        "You can download it manually instead.", "Open download page", REPO_URL & "/releases/latest"
 End Sub
 
-' Returns an error message, or "" on success.
+' Used when only the Atom feed announced the release; returns an error message, or "" on success.
+Private Function FetchManifest(ByVal ver As String) As String
+    Dim bytes() As Byte
+    Dim reason As String
+
+    reason = DownloadBytes(REPO_URL & "/releases/download/v" & ver & "/update.txt", bytes)
+    If Len(reason) > 0 Then
+        FetchManifest = reason
+        Exit Function
+    End If
+    If Not ParseManifest(StrConv(bytes, vbUnicode)) Then
+        FetchManifest = "The release has no installable file."
+        Exit Function
+    End If
+    SaveCachedUpdate
+End Function
+
+' Returns an error message, or "" on success. WinHTTP first; urlmon when WinHTTP cannot reach GitHub.
 Private Function DownloadBytes(ByVal url As String, ByRef data() As Byte) As String
+    Dim retry As Boolean
+    Dim fallback As String
+
+    DownloadBytes = DownloadWinHttp(url, data, retry)
+    If Not retry Then Exit Function
+
+    ProgressStep gStepFraction, "Retrying download..."
+    fallback = DownloadUrlmon(url, data)
+    If Len(fallback) = 0 Then
+        DownloadBytes = ""
+    Else
+        DownloadBytes = DownloadBytes & vbCrLf & fallback
+    End If
+End Function
+
+' Sets retry when the failure may be specific to WinHTTP (no connection, proxy authentication).
+Private Function DownloadWinHttp(ByVal url As String, ByRef data() As Byte, ByRef retry As Boolean) As String
     Dim http As Object
-    Dim deadline As Date
     Dim body As Variant
 
     On Error GoTo NetError
-    Set http = CreateHttp()
-    http.Open "GET", url, True
-    http.setRequestHeader "User-Agent", "All-in-one/" & APP_VERSION
+    Set http = CreateWinHttp()
+    http.SetTimeouts 15000, 15000, 30000, DOWNLOAD_TIMEOUT_SECONDS * 1000
+    http.Open "GET", url, False
+    http.SetRequestHeader "User-Agent", "All-in-one/" & APP_VERSION
     http.Send
-    deadline = DateAdd("s", DOWNLOAD_TIMEOUT_SECONDS, Now)
-    Do While http.readyState < 4
-        If Now > deadline Then
-            http.abort
-            DownloadBytes = "The download timed out."
+    Select Case http.Status
+        Case 200
+        Case 407
+            retry = True
+            DownloadWinHttp = "The proxy requires authentication."
             Exit Function
-        End If
-        If http.readyState >= 3 Then
-            If DeclaredLength(http) > MAX_DOWNLOAD_BYTES Then
-                http.abort
-                DownloadBytes = "The download is larger than expected."
-                Exit Function
-            End If
-        End If
-        DoEvents
-        Sleep 50
-    Loop
-    If http.Status <> 200 Then
-        DownloadBytes = "GitHub answered with HTTP " & http.Status & "."
-        Exit Function
-    End If
-    body = http.responseBody
+        Case Else
+            DownloadWinHttp = "GitHub answered with HTTP " & http.Status & "."
+            Exit Function
+    End Select
+    body = http.ResponseBody
     If Not IsArray(body) Then
-        DownloadBytes = "The download was empty."
+        DownloadWinHttp = "The download was empty."
         Exit Function
     End If
     If UBound(body) - LBound(body) + 1 > MAX_DOWNLOAD_BYTES Then
-        DownloadBytes = "The download is larger than expected."
+        DownloadWinHttp = "The download is larger than expected."
         Exit Function
     End If
     data = body
     Exit Function
 NetError:
-    DownloadBytes = "Could not reach GitHub: " & Err.Description
+    retry = True
+    DownloadWinHttp = "Could not reach GitHub: " & Err.Description
 End Function
 
-' Returns -1 when the server did not declare a length.
-Private Function DeclaredLength(ByVal http As Object) As Double
-    DeclaredLength = -1
+' URLMON uses the user's WinINet proxy settings and follows redirects across hosts.
+Private Function DownloadUrlmon(ByVal url As String, ByRef data() As Byte) As String
+    Dim temp As String
+    Dim hr As Long
+    Dim size As Long
+    Dim f As Integer
+
+    temp = Environ$("TEMP") & "\All-in-one-download-" & Format$(Now, "yyyymmddhhnnss") & ".tmp"
+    On Error GoTo Failed
+    DeleteUrlCacheEntryW StrPtr(url)
+    hr = URLDownloadToFileW(0, StrPtr(url), StrPtr(temp), 0, 0)
+    If hr <> 0 Then
+        DownloadUrlmon = "The fallback download failed (0x" & Hex$(hr) & ")."
+        GoTo Cleanup
+    End If
+    size = FileLen(temp)
+    If size = 0 Then
+        DownloadUrlmon = "The download was empty."
+        GoTo Cleanup
+    End If
+    If size > MAX_DOWNLOAD_BYTES Then
+        DownloadUrlmon = "The download is larger than expected."
+        GoTo Cleanup
+    End If
+    ReDim data(0 To size - 1)
+    f = FreeFile
+    Open temp For Binary Access Read As #f
+    Get #f, , data
+    Close #f
+    f = 0
+Cleanup:
     On Error Resume Next
-    DeclaredLength = CDbl(http.getResponseHeader("Content-Length"))
+    If f <> 0 Then Close #f
+    Kill temp
+    Exit Function
+Failed:
+    DownloadUrlmon = "The fallback download failed: " & Err.Description
+    Resume Cleanup
 End Function
 
 Private Function Sha256Hex(ByRef data() As Byte) As String
@@ -523,23 +608,38 @@ End Sub
 
 ' ---- Helpers ----
 
-' Shows the update dialog; falls back to a plain message box (URL as text) if the form is unavailable.
-Private Function ShowUpdateDialog(ByVal message As String, ByVal linkText As String, ByVal linkUrl As String, ByVal acceptText As String) As Boolean
+' The progress dialog is optional: if the form is unavailable the install still runs and the result is a plain message box.
+Private Sub ProgressBegin(ByVal message As String)
+    On Error Resume Next
+    gStepFraction = 0
+    UpdateDialog.BeginProgress MSG_TITLE, message
+    gProgress = (Err.Number = 0)
+End Sub
+
+Private Sub ProgressStep(ByVal fraction As Double, ByVal message As String)
+    gStepFraction = fraction
+    If Not gProgress Then Exit Sub
+    On Error Resume Next
+    UpdateDialog.SetProgress fraction, message
+End Sub
+
+' Turns the progress window into the result dialog and waits for Close.
+Private Sub ProgressFinish(ByVal message As String, ByVal linkText As String, ByVal linkUrl As String)
     Dim text As String
 
-    On Error GoTo Fallback
-    ShowUpdateDialog = UpdateDialog.ShowDialog(MSG_TITLE, message, linkText, linkUrl, acceptText)
-    Exit Function
+    If gProgress Then
+        gProgress = False
+        On Error GoTo Fallback
+        UpdateDialog.Finish message, linkText, linkUrl
+        Exit Sub
+    End If
 Fallback:
     On Error Resume Next
+    Unload UpdateDialog
     text = message
     If Len(linkText) > 0 Then text = text & vbCrLf & vbCrLf & linkText & ": " & linkUrl
-    If Len(acceptText) > 0 Then
-        ShowUpdateDialog = (MsgBox(text & vbCrLf & vbCrLf & acceptText & "?", vbYesNo + vbQuestion, MSG_TITLE) = vbYes)
-    Else
-        MsgBox text, vbInformation, MSG_TITLE
-    End If
-End Function
+    MsgBox text, vbInformation, MSG_TITLE
+End Sub
 
 ' Only https links built from this module's constants are ever opened.
 Public Sub OpenUrl(ByVal url As String)
