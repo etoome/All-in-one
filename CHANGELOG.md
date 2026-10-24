@@ -1,3 +1,14 @@
+## v1.2.0 (2026-10-24)
+
+### Features
+
+- Distribute two shapes ([`0601939`](https://github.com/etoome/All-in-one/commit/06019396e0f6b73e07458628b68059b2e2bf524c))
+
+### Bug Fixes
+
+- Updater ([`8554e33`](https://github.com/etoome/All-in-one/commit/8554e338ad31aadeb6882e503aead9c6f9606809))
+- Improve update mechanism ([`ddf0a43`](https://github.com/etoome/All-in-one/commit/ddf0a4305c7dc7fe801804947b03dc3bd53df896))
+
 ## v1.1.0 (2026-10-24)
 
 ### Features

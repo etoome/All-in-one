@@ -1,6 +1,6 @@
 [project]
 name = "all-in-one"
-version = "1.1.0"
+version = "1.2.0"
 description = "PowerPoint ribbon add-in combining built-in commands and VBA tools."
 license = "MIT"
 requires-python = ">=3.11"
