@@ -39,9 +39,9 @@ UPDATE_REPO = "etoome/All-in-one"
 ICON_SIZE = 32
 # Button tag -> PNG whose pixels VBA rebuilds at runtime; tags without a PNG fall through to "".
 ICON_TAGS = {
-    "textcolor": "textColorFormatting.png",
-    "fillcolor": "fillColorFormatting.png",
-    "linestyle": "lineStyleFormatting.png",
+    "textcolor": "applyTextColor.png",
+    "fillcolor": "applyFillColor.png",
+    "linestyle": "applyLineStyle.png",
 }
 
 PP_LAYOUT_BLANK = 12
@@ -49,6 +49,20 @@ PP_SAVE_AS_MACRO_ENABLED = 25
 MSO_AUTOMATION_SECURITY_LOW = 1
 VBEXT_CT_MSFORM = 3
 FM_START_UP_POSITION_CENTER_OWNER = 1
+
+def colorize(message: str, color: str, stream) -> str:
+    if not stream.isatty() or "NO_COLOR" in os.environ:
+        return message
+    return f"\033[{color}m{message}\033[0m"
+
+
+def status(message: str) -> None:
+    print(colorize(message, "90", sys.stdout))
+
+
+def fail(message: str) -> None:
+    sys.exit(colorize(message, "31", sys.stderr))
+
 
 RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
@@ -72,14 +86,14 @@ def resolve_version(cli_version: str | None) -> str:
     with (ROOT / "pyproject.toml").open("rb") as file:
         version = tomllib.load(file).get("project", {}).get("version")
     if not version:
-        sys.exit("No [project].version found in pyproject.toml")
+        fail("No [project].version found in pyproject.toml")
     return version
 
 
 def require_plain_version(version: str) -> None:
     # The in-app updater only understands MAJOR.MINOR.PATCH, so a pre-release tag would never be offered.
     if not re.fullmatch(r"\d{1,6}\.\d{1,6}\.\d{1,6}", version):
-        sys.exit(f"Version '{version}' must look like MAJOR.MINOR.PATCH")
+        fail(f"Version '{version}' must look like MAJOR.MINOR.PATCH")
 
 
 def resized_icon(path: Path, size: int) -> Image.Image:
@@ -168,12 +182,12 @@ def launch_powerpoint(temp_dir: Path):
 
     with contextlib.suppress(pythoncom.com_error):
         win32com.client.GetActiveObject("PowerPoint.Application")
-        sys.exit("PowerPoint is already running; close it so the build can start its own instance.")
+        fail("PowerPoint is already running; close it so the build can start its own instance.")
 
     app_paths = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\powerpnt.exe"
     exe = winreg.QueryValue(winreg.HKEY_LOCAL_MACHINE, app_paths)
     process = subprocess.Popen([exe], env={**os.environ, "TEMP": str(temp_dir), "TMP": str(temp_dir)})
-    print("Waiting for PowerPoint to start (choose No if it offers safe mode)...")
+    status("Waiting for PowerPoint to start (choose No if it offers safe mode)...")
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         try:
@@ -182,7 +196,7 @@ def launch_powerpoint(temp_dir: Path):
             if process.poll() is not None:
                 break
             time.sleep(0.5)
-    sys.exit("Could not attach to the PowerPoint instance that was started.")
+    fail("Could not attach to the PowerPoint instance that was started.")
 
 
 def add_form(pres, source: Path) -> None:
@@ -200,7 +214,7 @@ def add_form(pres, source: Path) -> None:
 
 
 def build_macro_presentation(module_files: list[Path], form_files: list[Path], version: str, pptm_file: Path, temp_dir: Path) -> None:
-    print("Launching PowerPoint...")
+    status("Launching PowerPoint...")
     ppt = launch_powerpoint(temp_dir)
     ppt.AutomationSecurity = MSO_AUTOMATION_SECURITY_LOW  # suppress macro security prompts during unattended build
     pres = None
@@ -214,15 +228,15 @@ def build_macro_presentation(module_files: list[Path], form_files: list[Path], v
             build_info = Path(tmp) / "BuildInfo.bas"
             write_build_info_module(build_info, version)
             for module in [*module_files, icon_data, build_info]:
-                print(f"Importing {module.name}...")
+                status(f"Importing {module.name}...")
                 pres.VBProject.VBComponents.Import(str(module))
             for form in form_files:
-                print(f"Adding form {form.stem}...")
+                status(f"Adding form {form.stem}...")
                 add_form(pres, form)
 
             # SaveAs to the OpenXML add-in format (30) fails with 0x80004005, so save
             # macro-enabled and convert the package to add-in form when repackaging.
-            print(f"Saving macro-enabled presentation to {pptm_file}...")
+            status(f"Saving macro-enabled presentation to {pptm_file}...")
             pres.SaveAs(str(pptm_file), PP_SAVE_AS_MACRO_ENABLED)
             pres.Close()
             pres = None
@@ -283,7 +297,7 @@ def ribbon_images_rels(images: list[Path]) -> bytes:
 
 
 def inject_ribbon(pptm_file: Path, ppam_file: Path) -> None:
-    print("Injecting ribbon customUI...")
+    status("Injecting ribbon customUI...")
     images = sorted(ICONS_DIR.glob("*.png"), key=lambda p: p.name.lower())
     rebuild_file = ppam_file.with_name(ppam_file.name + ".rebuild")
 
@@ -310,13 +324,13 @@ def inject_ribbon(pptm_file: Path, ppam_file: Path) -> None:
 
 
 def verify_package(ppam_file: Path) -> None:
-    print("Verifying package...")
+    status("Verifying package...")
     with zipfile.ZipFile(ppam_file) as package:
         corrupt = package.testzip()
         if corrupt:
-            sys.exit(f"Corrupt entry '{corrupt}' in {ppam_file}")
+            fail(f"Corrupt entry '{corrupt}' in {ppam_file}")
         if CUSTOM_UI_PART not in package.namelist():
-            sys.exit(f"Ribbon part '{CUSTOM_UI_PART}' missing from package.")
+            fail(f"Ribbon part '{CUSTOM_UI_PART}' missing from package.")
 
 
 def render_installer_file(name: str, version: str) -> str:
@@ -324,7 +338,7 @@ def render_installer_file(name: str, version: str) -> str:
 
 
 def write_release_assets(version: str) -> None:
-    print("Writing release assets...")
+    status("Writing release assets...")
     installer_file = DIST_DIR / "Install.ps1"
     installer_file.write_text(render_installer_file("Install.ps1", version), encoding="utf-8")
 
@@ -346,10 +360,10 @@ def main() -> int:
     require_plain_version(version)
 
     if not UI_FILE.exists():
-        sys.exit(f"Ribbon XML not found: {UI_FILE}")
+        fail(f"Ribbon XML not found: {UI_FILE}")
     module_files = sorted(MODULES_DIR.glob("*.bas")) + sorted(CLASSES_DIR.glob("*.cls"))
     if not module_files:
-        sys.exit(f"No .bas/.cls modules found in {MODULES_DIR} or {CLASSES_DIR}")
+        fail(f"No .bas/.cls modules found in {MODULES_DIR} or {CLASSES_DIR}")
     form_files = sorted(FORMS_DIR.glob("*.vba"))
 
     ppam_file = DIST_DIR / f"All-in-one-v{version}.ppam"
@@ -365,7 +379,7 @@ def main() -> int:
     write_release_assets(version)
     write_update_manifest(ppam_file, version)
 
-    print(f"Release assets: {DIST_DIR / 'Install.ps1'}, {ppam_file}")
+    print(colorize(f"Release assets: {DIST_DIR / 'Install.ps1'}, {ppam_file}", "32", sys.stdout))
     return 0
 
 

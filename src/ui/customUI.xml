@@ -133,14 +133,14 @@
               onAction="UnlockAspectRatio"
               getVisible="GetLockAspectRatioVisible"
               getEnabled="EnableWhenShapeSelected"
-              image="lockClosed" showLabel="false"
+              image="aspectRatioLocked" showLabel="false"
               screentip="Aspect Ratio Locked"
               supertip="Width and height are locked proportionally for the selected shape(s). Click to unlock." />
             <button id="size.lockAspectRatioUnlocked"
               onAction="LockAspectRatio"
               getVisible="GetLockAspectRatioNotVisible"
               getEnabled="EnableWhenShapeSelected"
-              image="lockOpen" showLabel="false"
+              image="aspectRatioUnlocked" showLabel="false"
               screentip="Aspect Ratio Unlocked"
               supertip="Width and height resize independently for the selected shape(s). Click to lock proportionally." />
             <button id="size.sameWidth" onAction="ObjectsSameWidth"
@@ -155,7 +155,7 @@
               supertip="Resize all selected shapes to match the height of the first-selected shape." />
             <button id="size.sameSize" onAction="ObjectsSameSize"
               getEnabled="EnableWhenMultipleShapesSelected"
-              image="sameSize" showLabel="false"
+              image="matchSize" showLabel="false"
               screentip="Same Size"
               supertip="Resize all selected shapes to match the size of the first-selected shape." />
           </box>
@@ -179,7 +179,7 @@
             <button id="transform.switchPosition"
               onAction="SwitchObjectPosition"
               getEnabled="EnableWhenTwoShapesSelected"
-              image="switchObjectPosition" showLabel="false"
+              image="swapShapePositions" showLabel="false"
               screentip="Switch Position"
               supertip="Swap the positions of the two selected shapes, exchanging their top-left corners." />
           </box>
@@ -274,12 +274,12 @@
           <box id="formatting.actions" boxStyle="vertical">
             <button id="formatting.copy" onAction="CopyShapeFormatting"
               getEnabled="EnableWhenOneShapeSelected"
-              image="copyFormatting" showLabel="false"
+              image="copyShapeFormatting" showLabel="false"
               screentip="Copy Formatting"
               supertip="Copy all formatting of the selected shape, then use the Apply buttons to paste the ones you want." />
             <button id="formatting.applyAll" tag="all"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="pasteFormatting" showLabel="false"
+              image="applyAllFormatting" showLabel="false"
               screentip="Apply All Copied Formatting"
               supertip="Apply all copied formatting to the selected shapes." />
             <control idMso="FormatPainter" showLabel="false" />
@@ -306,17 +306,17 @@
           <box id="formatting.sizePosition" boxStyle="vertical">
             <button id="formatting.applyWidth" tag="width" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="widthFormatting"
+              image="applyWidth"
               screentip="Apply Width"
               supertip="Apply the copied width to the selected shapes, ignoring the aspect ratio lock." />
             <button id="formatting.applyHeight" tag="height" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="heightFormatting"
+              image="applyHeight"
               screentip="Apply Height"
               supertip="Apply the copied height to the selected shapes, ignoring the aspect ratio lock." />
             <button id="formatting.applyPosition" tag="position" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="positionFormatting"
+              image="applyPosition"
               screentip="Apply Position"
               supertip="Move the selected shapes to the copied left and top position." />
           </box>
@@ -324,17 +324,17 @@
           <box id="formatting.shape" boxStyle="vertical">
             <button id="formatting.applyType" tag="type" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="shapeTypeFormatting"
+              image="applyShapeType"
               screentip="Apply Type"
               supertip="Change the selected AutoShapes to the copied shape type." />
             <button id="formatting.applyAngles" tag="angles" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="anglesFormatting"
+              image="applyShapeAngles"
               screentip="Apply Angles"
               supertip="Apply the copied rotation and corner/handle angles (e.g. rounded corners) to the selected shapes." />
             <button id="formatting.applyMargins" tag="margins" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="marginFormatting"
+              image="applyTextMargins"
               screentip="Apply Margins"
               supertip="Apply the copied internal text margins to the selected shapes." />
           </box>
@@ -342,17 +342,17 @@
           <box id="formatting.text" boxStyle="vertical">
             <button id="formatting.applyFontSize" tag="fontsize" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="fontSizeFormatting"
+              image="applyFontSize"
               screentip="Apply Font Size"
               supertip="Apply the copied font size to all text in the selected shapes." />
             <button id="formatting.applyBullet" tag="bullet" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="bulletFormatting"
+              image="applyBulletStyle"
               screentip="Apply Bullet"
               supertip="Apply the copied bullet or numbering to the text of the selected shapes." />
             <button id="formatting.applyLineSpacing" tag="linespacing" showLabel="false"
               onAction="ApplyShapeFormatting" getEnabled="EnableApplyFormatting"
-              image="lineSpacingFormatting"
+              image="applyLineSpacing"
               screentip="Apply Line Spacing"
               supertip="Apply the copied line spacing and paragraph spacing before and after to the text of the selected shapes." />
           </box>
@@ -411,15 +411,15 @@
           </box>
         </group>
         <group id="language" label="Language" imageMso="SetLanguage">
-          <menu id="language.menu" image="language"
+          <menu id="language.menu" image="proofingLanguage"
             screentip="Set Language"
             supertip="Set the editing/proofing language for all text on every slide, slide master, and layout.">
             <button id="language.en" label="English"
-              onAction="SetLanguageEnglish" image="flagGb" />
+              onAction="SetLanguageEnglish" image="flagUnitedKingdom" />
             <button id="language.fr" label="French"
-              onAction="SetLanguageFrench" image="flagFr" />
+              onAction="SetLanguageFrench" image="flagFrance" />
             <button id="language.nl" label="Dutch"
-              onAction="SetLanguageDutch" image="flagNl" />
+              onAction="SetLanguageDutch" image="flagNetherlands" />
           </menu>
         </group>
       </tab>
@@ -430,16 +430,16 @@
       <button id="archive"
         onAction="ArchiveSelectedSlides"
         getVisible="GetArchiveVisible"
-        image="archiveSlide"
+        image="archiveSlides"
         label="Archive"
         screentip="Archive"
         supertip="Move the selected slide(s) into a section named Archive at the end of the presentation." />
       <button id="unarchive"
-        onAction="UnarchiveSelectedSlides"
+        onAction="RestoreSelectedSlides"
         getVisible="GetUnarchiveVisible"
-        image="unarchiveSlide"
-        label="Unarchive"
-        screentip="Unarchive"
+        image="restoreSlides"
+        label="Restore"
+        screentip="Restore"
         supertip="Move the selected slide(s) out of the Archive section back into the presentation." />
       <menuSeparator id="archive.separator" />
     </contextMenu>

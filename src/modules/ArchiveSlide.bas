@@ -93,7 +93,7 @@ End Sub
 
 ' Context-menu onAction: move the selected slide(s) out of the "archive" section,
 ' back into the main deck (just before the section), and unhide them.
-Sub UnarchiveSelectedSlides(control As IRibbonControl)
+Sub RestoreSelectedSlides(control As IRibbonControl)
     If Not CanUseActiveWindow() Then Exit Sub
     If ActiveWindow.Selection.Type <> ppSelectionSlides Then Exit Sub
 
