@@ -4,6 +4,8 @@ Everything you reach for in PowerPoint, in a single ribbon tab, plus a handful o
 
 All-in-one adds a tab at the start of your ribbon that gathers the commands you use most: slides, shapes, text, sizing, alignment, tables and more. You stop hopping between Home, Insert, Design and Shape Format, and you get a few time-savers on top.
 
+![All-in-one ribbon in PowerPoint](docs/screenshots/ribbon.png)
+
 ## Install
 
 You need Windows and the desktop version of PowerPoint.
