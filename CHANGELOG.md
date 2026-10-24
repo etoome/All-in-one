@@ -1,3 +1,15 @@
+## v1.0.4 (2026-10-24)
+
+### Bug Fixes
+
+- **build**: Remove sensitive info ([`a3b7729`](https://github.com/etoome/All-in-one/commit/a3b7729397914feabfe2f7be984ef862787a75b0))
+
+### Refactoring
+
+- Clean ([`4b36f10`](https://github.com/etoome/All-in-one/commit/4b36f108f6d42307bb20047944409ed80edfe156))
+- **release**: Replace python-semantic-release by cz bump ([`5d518e1`](https://github.com/etoome/All-in-one/commit/5d518e106303bbb881342fb4bd5972a069aaf7b3))
+- Add licenses ([`a0ec304`](https://github.com/etoome/All-in-one/commit/a0ec304c75e7880ab149b0a06569d429365a3c53))
+
 ## v1.0.3 (2026-10-23)
 
 ### Bug Fixes
