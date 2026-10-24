@@ -1,9 +1,14 @@
 Attribute VB_Name = "Language"
 Option Explicit
 
-' Ribbon onAction callback: set every slide's text language to English.
-Sub SetLanguageEnglish(control As IRibbonControl)
+' Ribbon onAction callback: set every slide's text language to UK English.
+Sub SetLanguageEnglishUK(control As IRibbonControl)
     ApplyDefaultLanguage msoLanguageIDEnglishUK
+End Sub
+
+' Ribbon onAction callback: set every slide's text language to US English.
+Sub SetLanguageEnglishUS(control As IRibbonControl)
+    ApplyDefaultLanguage msoLanguageIDEnglishUS
 End Sub
 
 ' Ribbon onAction callback: set every slide's text language to French.

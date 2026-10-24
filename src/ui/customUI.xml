@@ -414,8 +414,10 @@
           <menu id="language.menu" image="proofingLanguage"
             screentip="Set Language"
             supertip="Set the editing/proofing language for all text on every slide, slide master, and layout.">
-            <button id="language.en" label="English"
-              onAction="SetLanguageEnglish" image="flagUnitedKingdom" />
+            <button id="language.enUK" label="English (UK)"
+              onAction="SetLanguageEnglishUK" image="flagUnitedKingdom" />
+            <button id="language.enUS" label="English (US)"
+              onAction="SetLanguageEnglishUS" image="flagUnitedStates" />
             <button id="language.fr" label="French"
               onAction="SetLanguageFrench" image="flagFrance" />
             <button id="language.nl" label="Dutch"
