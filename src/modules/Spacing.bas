@@ -24,6 +24,25 @@ Sub DecreaseVerticalSpacing(control As IRibbonControl)
     AdjustSpacing False, -1
 End Sub
 
+' Ribbon onAction callback: distribute the selected shapes evenly along the vertical axis.
+Sub DistributeVertically(control As IRibbonControl)
+    DistributeShapes msoDistributeVertically
+End Sub
+
+' Ribbon onAction callback: distribute the selected shapes evenly along the horizontal axis.
+Sub DistributeHorizontally(control As IRibbonControl)
+    DistributeShapes msoDistributeHorizontally
+End Sub
+
+' The built-in Distribute is disabled for two shapes, so two are spread across the slide instead.
+Private Sub DistributeShapes(ByVal direction As MsoDistributeCmd)
+    If SelectedShapeCount < 2 Then Exit Sub
+
+    With ActiveWindow.Selection.ShapeRange
+        .Distribute direction, IIf(.Count = 2, msoTrue, msoFalse)
+    End With
+End Sub
+
 ' Changes each adjacent gap by sign * SPACING_STEP while keeping the group centered.
 ' Sizes are constant, so shifting shape centers by the same delta also changes the
 ' edge gaps by exactly SPACING_STEP, giving uniform spacing regardless of shape sizes.

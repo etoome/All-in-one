@@ -239,7 +239,12 @@
           </box>
           <separator id="alignment.separator1" />
           <box id="alignment.verticalSpacing" boxStyle="vertical">
-            <control idMso="AlignDistributeVertically" showLabel="false" />
+            <button id="alignment.distributeVertically"
+              onAction="DistributeVertically"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="AlignDistributeVertically" showLabel="false"
+              screentip="Distribute Vertically"
+              supertip="Space the selected shapes evenly from top to bottom, or across the slide when only two are selected." />
             <button id="alignment.increaseVerticalSpacing"
               onAction="IncreaseVerticalSpacing"
               getEnabled="EnableWhenMultipleShapesSelected"
@@ -255,7 +260,12 @@
           </box>
           <separator id="alignment.separator2" />
           <box id="alignment.horizontalSpacing" boxStyle="vertical">
-            <control idMso="AlignDistributeHorizontally" showLabel="false" />
+            <button id="alignment.distributeHorizontally"
+              onAction="DistributeHorizontally"
+              getEnabled="EnableWhenMultipleShapesSelected"
+              imageMso="AlignDistributeHorizontally" showLabel="false"
+              screentip="Distribute Horizontally"
+              supertip="Space the selected shapes evenly from left to right, or across the slide when only two are selected." />
             <button id="alignment.increaseHorizontalSpacing"
               onAction="IncreaseHorizontalSpacing"
               getEnabled="EnableWhenMultipleShapesSelected"
