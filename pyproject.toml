@@ -12,7 +12,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "commitizen",
-    "python-semantic-release",
 ]
 
 [tool.uv]
@@ -22,20 +21,18 @@ system-certs = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-tag_format = "v{version}"
-commit_message = "chore(release): v{version}"
-allow_zero_version = true
-major_on_zero = false
-build_command = 'cmd /c "uv run --upgrade-package all-in-one scripts/build.py && git add uv.lock"'
-
-[tool.semantic_release.branches.main]
-match = "main"
-
-[tool.semantic_release.changelog.default_templates]
+version_provider = "pep621"
+tag_format = "v$version"
+bump_message = "chore(release): v$new_version"
+annotated_tag = true
+update_changelog_on_bump = true
 changelog_file = "CHANGELOG.md"
+template = "scripts/templates/changelog.md.j2"
+change_type_map = { feat = "Features", fix = "Bug Fixes", perf = "Performance", refactor = "Refactoring" }
+change_type_order = ["Features", "Bug Fixes", "Performance", "Refactoring"]
+# Runs after pyproject.toml gets the new version; the release commit uses `git commit -a`, so the refreshed uv.lock is included.
+pre_bump_hooks = ["uv run --upgrade-package all-in-one scripts/build.py"]
+post_bump_hooks = ["git push origin main --follow-tags"]
 
-[tool.semantic_release.remote]
-type = "github"
+[tool.commitizen.extras]
+repo_url = "https://github.com/etoome/All-in-one"

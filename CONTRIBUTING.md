@@ -41,7 +41,7 @@ All-in-one-v<version>.ppam
 
 The version comes from `--version`, else from `version` in `pyproject.toml`.
 
-The installer template lives in `scripts/installer/`.
+Installer and changelog templates live in `scripts/templates/`.
 
 Close PowerPoint first if the add-in is currently loaded, since the output file is locked while in use.
 
@@ -73,9 +73,9 @@ $env:GH_TOKEN = "<token>"
 ```
 
 - `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run semantic-release version --no-vcs-release` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), updates `CHANGELOG.md` and `uv.lock`, builds the release assets, commits, tags `v<version>` and pushes. `uv.lock` is staged by the build command so it is committed without being uploaded as a GitHub release asset. Close PowerPoint first.
+- `uv run cz bump` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), adds a versioned section to `CHANGELOG.md`, builds the release assets (which refreshes `uv.lock`), commits with `git commit -a`, tags `v<version>` and pushes. Start from a clean working tree, since every tracked change goes into the release commit, and close PowerPoint first. Avoid running `cz changelog` by itself; it generates an `Unreleased` section.
 - `uv run scripts/release.py` creates the GitHub Release as a draft, uploads `Install.ps1` and the versioned `.ppam`, then publishes it after you press Enter (Ctrl+C keeps the draft). This order is required for repositories with immutable releases, which lock assets on publish. If an upload fails the draft is left in place; delete it and re-run.
-- `uv run semantic-release --noop version --no-vcs-release` previews the release without changing anything; `--major`, `--minor` or `--patch` overrides the level.
+- `uv run cz bump --dry-run` previews the release without changing anything; `--increment MAJOR`, `MINOR` or `PATCH` overrides the level.
 
 ## References
 

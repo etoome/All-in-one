@@ -28,7 +28,7 @@ MODULES_DIR = ROOT / "src" / "modules"
 CLASSES_DIR = ROOT / "src" / "classes"
 UI_FILE = ROOT / "src" / "ui" / "customUI.xml"
 ICONS_DIR = ROOT / "src" / "ui" / "icons"
-INSTALLER_DIR = ROOT / "scripts" / "installer"
+INSTALLER_DIR = ROOT / "scripts" / "templates" / "installer"
 DIST_DIR = ROOT / "dist"
 
 ICON_SIZE = 32
@@ -59,10 +59,9 @@ LABEL_INFO_PART = "docMetadata/LabelInfo.xml"
 
 
 def resolve_version(cli_version: str | None) -> str:
-    """Precedence: --version, $NEW_VERSION set by semantic-release, then pyproject.toml."""
-    version = cli_version or os.environ.get("NEW_VERSION")
-    if version:
-        return version
+    """Precedence: --version, then pyproject.toml."""
+    if cli_version:
+        return cli_version
     with (ROOT / "pyproject.toml").open("rb") as file:
         version = tomllib.load(file).get("project", {}).get("version")
     if not version:
@@ -287,7 +286,7 @@ def write_release_assets(version: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--version", help="release version (default: $NEW_VERSION, then pyproject.toml)")
+    parser.add_argument("--version", help="release version (default: pyproject.toml)")
     version = resolve_version(parser.parse_args().version)
 
     if not UI_FILE.exists():

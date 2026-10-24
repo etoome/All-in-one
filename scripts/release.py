@@ -2,7 +2,7 @@
 """Create the GitHub release for the current version as a draft, attach assets, then publish it.
 
 Immutable releases lock their assets on publish, so assets must be attached to the draft first.
-Run after `semantic-release version --no-vcs-release`. Requires $GH_TOKEN with contents: write.
+Run after `cz bump`. Requires $GH_TOKEN with contents: write.
 """
 import argparse
 import json
@@ -28,7 +28,7 @@ def read_version() -> str:
 
 def changelog_notes(version: str) -> str:
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    match = re.search(rf"^## v{re.escape(version)} .*?\n(.*?)(?=^## v|\Z)", text, re.M | re.S)
+    match = re.search(rf"^## v?{re.escape(version)} .*?\n(.*?)(?=^## |\Z)", text, re.M | re.S)
     return match.group(1).strip() if match else ""
 
 
