@@ -3,6 +3,23 @@
   <ribbon>
     <tabs>
       <tab id="all-in-one" label="All-in-one" insertBeforeMso="TabHome">
+        <group id="update" label="Update" image="update" getVisible="GetUpdateVisible">
+          <box id="update.box" boxStyle="vertical">
+            <button id="update.install"
+              getLabel="GetUpdateLabel" onAction="InstallUpdate"
+              image="update"
+              screentip="Update All-in-one"
+              supertip="Download and install the new version. It takes effect after PowerPoint restarts." />
+            <button id="update.changelog" label="What's new"
+              onAction="OpenChangelog" image="info"
+              screentip="Changelog"
+              supertip="Open the changelog on GitHub." />
+            <button id="update.remindLater" label="Remind me later"
+              onAction="RemindMeLater" image="remindLater"
+              screentip="Remind Me Later"
+              supertip="Hide this update notice for 7 days." />
+          </box>
+        </group>
         <group id="slides" label="Slides" imageMso="SlideNewGalleryInsert">
           <box id="slides.column" boxStyle="vertical">
             <gallery idMso="SlideNewGalleryInsert" showLabel="false" />

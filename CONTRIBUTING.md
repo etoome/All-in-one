@@ -39,9 +39,17 @@ Install.ps1
 All-in-one-v<version>.ppam
 ```
 
-The version comes from `--version`, else from `version` in `pyproject.toml`.
+The version comes from `--version`, else from `NEW_VERSION`, else from `version` in `pyproject.toml`. It must be `MAJOR.MINOR.PATCH`, because the in-app updater does not understand pre-release tags.
 
 Installer and changelog templates live in `scripts/templates/`.
+
+The build leaves an update manifest in `dist/` that must be published with every release, since the add-in's update check downloads it:
+
+- `update.txt`: `version`, `file` and `sha256` of the `.ppam`. The add-in reads it from `releases/latest/download/update.txt` and verifies the download against the hash.
+
+The release script uploads `update.txt` together with `Install.ps1` and the versioned `.ppam`.
+
+The build also generates `BuildInfo.bas` (running version and update repository) and adds the forms in `src/forms/` to the project; their controls are created in code at runtime.
 
 Close PowerPoint first if the add-in is currently loaded, since the output file is locked while in use.
 
@@ -81,7 +89,7 @@ Start on `main` with a clean working tree and PowerPoint closed, because the bum
 1. **Preview (optional):** `uv run cz bump --dry-run` shows the next version and changelog without changing anything.
 2. **Bump:** `uv run cz bump` updates the version in `pyproject.toml` and `CHANGELOG.md`, builds the assets into `dist/`, commits `chore(release): v<version>`, and creates an annotated local tag. To override the bump level detected from commits, add `--increment MAJOR`, `MINOR` or `PATCH`.
 3. **Push:** `git push origin main --follow-tags`.
-4. **Publish:** `uv run scripts/release.py` creates a draft GitHub Release that uses the notes from `CHANGELOG.md`, then uploads the assets. Press Enter to publish it, or Ctrl+C to keep it as a draft.
+4. **Publish:** `uv run scripts/release.py` creates a draft GitHub Release that uses the notes from `CHANGELOG.md`, then uploads the assets (`Install.ps1`, the versioned `.ppam` and `update.txt`). Press Enter to publish it, or Ctrl+C to keep it as a draft.
 
 Notes:
 

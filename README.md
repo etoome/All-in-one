@@ -16,7 +16,7 @@ irm https://github.com/etoome/All-in-one/releases/latest/download/Install.ps1 | 
 
 Restart PowerPoint. The **All-in-one** tab appears at the start of the ribbon.
 
-To update, run the same command again.
+The add-in checks GitHub once a day for updates. When one is available, an **Update** group appears at the start of the tab. Click **Update to vX.Y.Z**, confirm, then restart PowerPoint. To update manually or if the in-app download is blocked, run the same PowerShell command again.
 
 <details>
 <summary>Uninstall</summary>

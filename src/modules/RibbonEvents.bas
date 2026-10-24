@@ -12,6 +12,8 @@ Sub RibbonOnLoad(ribbon As IRibbonUI)
     Set gRibbon = ribbon
     Set gAppEvents = New AppEvents
     ActivateAllInOneTab
+    CleanupOldVersions
+    StartUpdateCheck
 End Sub
 
 ' Re-runs every control's getEnabled callback so selection-dependent buttons activate.

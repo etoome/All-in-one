@@ -18,6 +18,7 @@ End Sub
 
 ' Fires on every selection change; re-evaluates ribbon getEnabled callbacks.
 Private Sub App_WindowSelectionChange(ByVal Sel As Selection)
+    PollUpdateCheck
     RefreshRibbon
     ' Counters PowerPoint auto-switching to the contextual Shape Format tab.
     If Sel.Type = ppSelectionShapes Or Sel.Type = ppSelectionText Then ActivateAllInOneTab
@@ -25,6 +26,7 @@ End Sub
 
 ' Re-select the All-in-one tab whenever a window is activated or a presentation opens.
 Private Sub App_WindowActivate(ByVal Pres As Presentation, ByVal Wn As DocumentWindow)
+    PollUpdateCheck
     ActivateAllInOneTab
 End Sub
 

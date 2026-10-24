@@ -57,7 +57,11 @@ def main() -> None:
 
     version = args.version or read_version()
     tag = f"v{version}"
-    assets = [DIST_DIR / "Install.ps1", DIST_DIR / f"All-in-one-v{version}.ppam"]
+    assets = [
+        DIST_DIR / "Install.ps1",
+        DIST_DIR / f"All-in-one-v{version}.ppam",
+        DIST_DIR / "update.txt",
+    ]
     missing = [str(path) for path in assets if not path.is_file()]
     if missing:
         sys.exit(f"Missing release assets (run scripts/build.py): {', '.join(missing)}")

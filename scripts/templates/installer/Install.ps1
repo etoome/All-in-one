@@ -20,13 +20,30 @@ function Write-Banner {
     )
     Write-Host ""
     foreach ($line in $art) { Write-Host $line -ForegroundColor Cyan }
+    Write-Host ""
     Write-Host "            PowerPoint Add-in Installer v@@VERSION@@" -ForegroundColor DarkCyan
+    Write-Host "                         by etoome" -ForegroundColor DarkCyan
     Write-Host ""
 }
 
 function Write-Step { param([string]$Message) Write-Host "  [>] $Message" -ForegroundColor White }
 function Write-Ok   { param([string]$Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
 function Write-Note { param([string]$Message) Write-Host "  $Message" -ForegroundColor Yellow }
+# Lists every action the script will perform and asks once; returns $false if declined.
+function Confirm-Actions {
+    param([string[]]$Actions)
+    Write-Host "  Here is what will happen:" -ForegroundColor White
+    foreach ($action in $Actions) { Write-Host "   - $action" -ForegroundColor White }
+    Write-Host ""
+    $answer = Read-Host "  Do you want to continue? [Y/n]"
+    Write-Host ""
+    if ($answer -and $answer.Trim() -notmatch '^(y|yes)$') {
+        Write-Note "Cancelled. No changes were made."
+        Write-Host ""
+        return $false
+    }
+    return $true
+}
 
 # A loaded add-in is locked by PowerPoint; retry after the user closes it, rethrow any other failure.
 function Invoke-FileOp {
@@ -58,7 +75,19 @@ $officeVersion = Get-ChildItem 'HKCU:\Software\Microsoft\Office' -ErrorAction Si
 if (-not $officeVersion) { throw "Could not find an installed PowerPoint version under HKCU:\Software\Microsoft\Office." }
 
 # AutoLoad registry entry PowerPoint reads at startup to load the add-in for every presentation.
-$registryKey = "HKCU:\Software\Microsoft\Office\$officeVersion\PowerPoint\AddIns\$addInName"
+$addInsKey   = "HKCU:\Software\Microsoft\Office\$officeVersion\PowerPoint\AddIns"
+$registryKey = Join-Path $addInsKey $addInName
+
+# The in-app updater registers new versions through PowerPoint, which may use a different key name,
+# so match on the file the entry points to instead of the key name.
+function Remove-AddInRegistrations {
+    Get-ChildItem $addInsKey -ErrorAction SilentlyContinue | ForEach-Object {
+        $path = (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).Path
+        if ($_.PSChildName -like "$addInName*" -or ($path -and (Split-Path $path -Leaf) -like "$addInName*")) {
+            Remove-Item $_.PSPath -Recurse -Force
+        }
+    }
+}
 
 # The installed file name changes with each version, so clear every All-in-one* file
 # rather than tracking a single path -- otherwise old versions pile up in $installDir.
@@ -70,22 +99,36 @@ function Remove-InstalledAddIns {
 }
 
 if ($Uninstall) {
+    $confirmed = Confirm-Actions @(
+        "Remove the All-in-one add-in from your computer ($installDir)",
+        "Stop PowerPoint from loading it when it starts",
+        "Delete the add-in's saved preferences"
+    )
+    if (-not $confirmed) { return }
     Write-Step "Removing add-in..."
     Remove-InstalledAddIns
-    if (Test-Path $registryKey) { Remove-Item $registryKey -Recurse -Force }
+    Remove-AddInRegistrations
+    # Update-check state saved by the add-in's SaveSetting calls.
+    Remove-Item "HKCU:\Software\VB and VBA Program Settings\$addInName" -Recurse -Force -ErrorAction SilentlyContinue
     Write-Ok "Uninstalled from: $installDir"
     Write-Host ""
     Write-Note "Restart PowerPoint to remove the All-in-one tab."
     Write-Host ""
 }
 else {
+    $downloadUrl = 'https://github.com/etoome/All-in-one/releases/download/v@@VERSION@@/All-in-one-v@@VERSION@@.ppam'
+    $actions = @()
+    if (-not $ppamFile) { $actions += "Download All-in-one v@@VERSION@@ from GitHub" }
+    $actions += "Install the add-in for your user account ($installDir), replacing any older version"
+    $actions += "Set PowerPoint to load it automatically when it starts"
+    if (-not (Confirm-Actions $actions)) { return }
+
     $downloadDirectory = $null
     if (-not $ppamFile) {
         $downloadDirectory = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $downloadPath = Join-Path $downloadDirectory 'All-in-one-v@@VERSION@@.ppam'
-        $downloadUrl = 'https://github.com/etoome/All-in-one/releases/download/v@@VERSION@@/All-in-one-v@@VERSION@@.ppam'
         Write-Step "Downloading All-in-one v@@VERSION@@ from GitHub..."
         try { Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath -UseBasicParsing }
         catch {
@@ -105,6 +148,7 @@ else {
         Unblock-File -Path $installPath
 
         Write-Step "Setting PowerPoint to load All-in-one at startup..."
+        Remove-AddInRegistrations
         New-Item -Path $registryKey -Force | Out-Null
         New-ItemProperty -Path $registryKey -Name 'Path'     -Value $installPath -PropertyType String -Force | Out-Null
         New-ItemProperty -Path $registryKey -Name 'AutoLoad' -Value 1            -PropertyType DWord  -Force | Out-Null
