@@ -5,13 +5,18 @@ Requires Windows with desktop PowerPoint, and "Trust access to the VBA project o
 """
 import argparse
 import base64
+import contextlib
 import gc
 import io
 import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 import tomllib
+import winreg
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
@@ -49,6 +54,8 @@ CONTENT_TYPES_PART = "[Content_Types].xml"
 CUSTOM_UI_PART = "customUI/customUI.xml"
 CUSTOM_UI_RELS_PART = "customUI/_rels/customUI.xml.rels"
 PRESENTATION_PART = "/ppt/presentation.xml"
+CORE_PROPS_PART = "docProps/core.xml"
+LABEL_INFO_PART = "docMetadata/LabelInfo.xml"
 
 
 def resolve_version(cli_version: str | None) -> str:
@@ -110,11 +117,52 @@ def write_icon_data_module(out_file: Path) -> None:
         f.write("\n".join(head + body) + "\n")
 
 
-def build_macro_presentation(module_files: list[Path], pptm_file: Path) -> None:
+@contextlib.contextmanager
+def anonymous_temp_dir():
+    """Yields a TEMP folder outside the user profile; the VBE stores its MSForms.exd path (under %TEMP%) in the VBA project."""
+    folder = Path(os.environ.get("PUBLIC", r"C:\Users\Public")) / "all-in-one-build"
+    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        yield folder
+    finally:
+        for _ in range(20):  # PowerPoint keeps files open for a moment after Quit()
+            try:
+                shutil.rmtree(folder)
+                break
+            except OSError:
+                time.sleep(0.5)
+
+
+def launch_powerpoint(temp_dir: Path):
+    """Starts PowerPoint with TEMP/TMP set to temp_dir and attaches to it.
+
+    A COM-activated instance is started by Windows and ignores this process's environment, so launch it directly.
+    """
+    import pythoncom
     import win32com.client
 
+    with contextlib.suppress(pythoncom.com_error):
+        win32com.client.GetActiveObject("PowerPoint.Application")
+        sys.exit("PowerPoint is already running; close it so the build can start its own instance.")
+
+    app_paths = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\powerpnt.exe"
+    exe = winreg.QueryValue(winreg.HKEY_LOCAL_MACHINE, app_paths)
+    process = subprocess.Popen([exe], env={**os.environ, "TEMP": str(temp_dir), "TMP": str(temp_dir)})
+    print("Waiting for PowerPoint to start (choose No if it offers safe mode)...")
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        try:
+            return win32com.client.GetActiveObject("PowerPoint.Application")
+        except pythoncom.com_error:
+            if process.poll() is not None:
+                break
+            time.sleep(0.5)
+    sys.exit("Could not attach to the PowerPoint instance that was started.")
+
+
+def build_macro_presentation(module_files: list[Path], pptm_file: Path, temp_dir: Path) -> None:
     print("Launching PowerPoint...")
-    ppt = win32com.client.Dispatch("PowerPoint.Application")
+    ppt = launch_powerpoint(temp_dir)
     ppt.AutomationSecurity = MSO_AUTOMATION_SECURITY_LOW  # suppress macro security prompts during unattended build
     pres = None
     try:
@@ -153,9 +201,20 @@ def serialize_xml(root: ET.Element, default_ns: str) -> bytes:
 
 def with_ribbon_relationship(data: bytes) -> bytes:
     root = ET.fromstring(data)
+    # Drop the tenant-identifying sensitivity label PowerPoint stamps on the file.
+    for rel in [r for r in root if r.get("Target") == LABEL_INFO_PART]:
+        root.remove(rel)
     if not any(rel.get("Type") == CUSTOM_UI_REL_TYPE for rel in root):
         ET.SubElement(root, f"{{{RELS_NS}}}Relationship", Id="rIdCustomUI", Type=CUSTOM_UI_REL_TYPE, Target=CUSTOM_UI_PART)
     return serialize_xml(root, RELS_NS)
+
+
+def without_author(data: bytes) -> bytes:
+    # Regex rather than ElementTree, which would rewrite the dc:/cp: prefixes as ns0:/ns1:.
+    text = data.decode("utf-8")
+    text = re.sub(r"(<dc:creator>).*?(</dc:creator>)", r"\1\2", text, flags=re.S)
+    text = re.sub(r"(<cp:lastModifiedBy>).*?(</cp:lastModifiedBy>)", r"\1\2", text, flags=re.S)
+    return text.encode("utf-8")
 
 
 def as_addin_content_types(data: bytes) -> bytes:
@@ -166,6 +225,8 @@ def as_addin_content_types(data: bytes) -> bytes:
     for override in root.findall(f"{{{CONTENT_TYPES_NS}}}Override"):
         if override.get("PartName") == PRESENTATION_PART:
             override.set("ContentType", PPAM_MAIN_TYPE)
+        elif override.get("PartName") == f"/{LABEL_INFO_PART}":
+            root.remove(override)
     return serialize_xml(root, CONTENT_TYPES_NS)
 
 
@@ -184,11 +245,15 @@ def inject_ribbon(pptm_file: Path, ppam_file: Path) -> None:
 
     with zipfile.ZipFile(pptm_file) as src, zipfile.ZipFile(rebuild_file, "w", zipfile.ZIP_DEFLATED) as dest:
         for entry in src.infolist():
+            if entry.filename == LABEL_INFO_PART:
+                continue
             data = src.read(entry)
             if entry.filename == RELS_PART:
                 data = with_ribbon_relationship(data)
             elif entry.filename == CONTENT_TYPES_PART:
                 data = as_addin_content_types(data)
+            elif entry.filename == CORE_PROPS_PART:
+                data = without_author(data)
             dest.writestr(entry.filename, data)
 
         dest.writestr(CUSTOM_UI_PART, UI_FILE.read_bytes())
@@ -237,7 +302,8 @@ def main() -> int:
     shutil.rmtree(DIST_DIR, ignore_errors=True)
     DIST_DIR.mkdir(parents=True)
 
-    build_macro_presentation(module_files, pptm_file)
+    with anonymous_temp_dir() as temp_dir:
+        build_macro_presentation(module_files, pptm_file, temp_dir)
     inject_ribbon(pptm_file, ppam_file)
     verify_package(ppam_file)
     write_release_assets(version)
