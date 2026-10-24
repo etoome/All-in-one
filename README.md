@@ -34,3 +34,7 @@ Restart PowerPoint and the tab is gone.
 ## For developers
 
 Building from source or contributing? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE). Third-party icon attributions are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
