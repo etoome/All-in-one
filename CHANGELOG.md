@@ -1,3 +1,15 @@
+## v1.1.0 (2026-10-24)
+
+### Features
+
+- **language**: Us english ([`c051551`](https://github.com/etoome/All-in-one/commit/c05155161cd99941f805ab465ff39da22cfb4e68))
+- Updater ([`f2aa59d`](https://github.com/etoome/All-in-one/commit/f2aa59dfe77a6cb85a75d6b4d5e9e6f102b6f7e3))
+
+### Refactoring
+
+- Icons and scripts ([`e76a88e`](https://github.com/etoome/All-in-one/commit/e76a88e4ae922a3e6c1ff437e0a5cfde3808f9fd))
+- **release**: Do not push tags to remote ([`f355ac4`](https://github.com/etoome/All-in-one/commit/f355ac414fb932db857ef2175a6904d94f3b4307))
+
 ## v1.0.4 (2026-10-24)
 
 ### Bug Fixes
