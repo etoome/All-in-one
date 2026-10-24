@@ -333,24 +333,29 @@ def verify_package(ppam_file: Path) -> None:
             fail(f"Ribbon part '{CUSTOM_UI_PART}' missing from package.")
 
 
-def render_installer_file(name: str, version: str) -> str:
-    return (INSTALLER_DIR / name).read_text(encoding="utf-8").replace("@@VERSION@@", version)
+def render_installer_file(name: str, version: str, sha256: str) -> str:
+    text = (INSTALLER_DIR / name).read_text(encoding="utf-8")
+    return text.replace("@@VERSION@@", version).replace("@@SHA256@@", sha256)
 
 
-def write_release_assets(version: str) -> None:
+def write_release_assets(version: str, sha256: str) -> None:
     status("Writing release assets...")
     installer_file = DIST_DIR / "Install.ps1"
-    installer_file.write_text(render_installer_file("Install.ps1", version), encoding="utf-8")
+    installer_file.write_text(render_installer_file("Install.ps1", version, sha256), encoding="utf-8")
 
 
-def write_update_manifest(ppam_file: Path, version: str) -> None:
-    """Renames the .ppam to its versioned name and writes update.txt, both uploaded as release assets for the in-app updater."""
+def write_update_manifest(ppam_file: Path, version: str) -> str:
+    """Renames the .ppam to its versioned name and writes update.txt, both uploaded as release assets for the in-app updater.
+
+    Returns the SHA-256 of the .ppam.
+    """
     release_ppam = ppam_file.with_name(f"All-in-one-v{version}.ppam")
     if ppam_file != release_ppam:
         os.replace(ppam_file, release_ppam)
     sha256 = hashlib.sha256(release_ppam.read_bytes()).hexdigest()
     manifest = f"version={version}\nfile={release_ppam.name}\nsha256={sha256}\n"
     (DIST_DIR / "update.txt").write_text(manifest, encoding="ascii", newline="\n")
+    return sha256
 
 
 def main() -> int:
@@ -376,8 +381,7 @@ def main() -> int:
         build_macro_presentation(module_files, form_files, version, pptm_file, temp_dir)
     inject_ribbon(pptm_file, ppam_file)
     verify_package(ppam_file)
-    write_release_assets(version)
-    write_update_manifest(ppam_file, version)
+    write_release_assets(version, write_update_manifest(ppam_file, version))
 
     print(colorize(f"Release assets: {DIST_DIR / 'Install.ps1'}, {ppam_file}", "32", sys.stdout))
     return 0

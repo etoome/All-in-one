@@ -135,6 +135,11 @@ else {
             Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
             throw
         }
+        $downloadedHash = (Get-FileHash -Path $downloadPath -Algorithm SHA256).Hash
+        if ($downloadedHash -ne '@@SHA256@@') {
+            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
+            throw "The downloaded add-in failed its integrity check (SHA-256 mismatch). Nothing was installed."
+        }
         $ppamFile = Get-Item -Path $downloadPath
     }
     $installPath = Join-Path $installDir $ppamFile.Name

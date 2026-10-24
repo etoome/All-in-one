@@ -18,6 +18,7 @@ Private Const CHECK_INTERVAL_HOURS As Long = 24
 Private Const SNOOZE_DAYS As Long = 7
 Private Const CHECK_TIMEOUT_SECONDS As Long = 15
 Private Const DOWNLOAD_TIMEOUT_SECONDS As Long = 90
+Private Const MAX_DOWNLOAD_BYTES As Long = 52428800
 Private Const FILE_PREFIX As String = "All-in-one-v"
 Private Const FILE_SUFFIX As String = ".ppam"
 
@@ -61,7 +62,9 @@ End Sub
 Sub InstallUpdate(control As IRibbonControl)
     If gBusy Or Not gUpdateAvailable Then Exit Sub
     gBusy = True
+    On Error GoTo Done
     RunInstall
+Done:
     gBusy = False
 End Sub
 
@@ -201,6 +204,11 @@ Private Function ParseFeed(ByVal body As String) As Boolean
     If finish = 0 Then Exit Function
     ver = Mid$(body, start, finish - start)
     If Not IsValidVersion(ver) Then Exit Function
+    ' Keep an installable cached release rather than downgrading it to a manual-download one.
+    If Len(gLatestFile) > 0 And CompareVersions(ver, gLatestVersion) <= 0 Then
+        ParseFeed = True
+        Exit Function
+    End If
     gLatestVersion = ver
     gLatestFile = ""
     gLatestSha = ""
@@ -224,6 +232,10 @@ Private Sub LoadCachedUpdate()
     fileName = GetSetting(SETTINGS_APP, SETTINGS_SECTION, "LatestFile", "")
     sha = GetSetting(SETTINGS_APP, SETTINGS_SECTION, "LatestSha", "")
     If Not IsValidVersion(ver) Then Exit Sub
+    If CompareVersions(ver, APP_VERSION) <= 0 Then
+        ClearCachedUpdate
+        Exit Sub
+    End If
     If Len(fileName) > 0 And Not IsValidAsset(fileName, sha, ver) Then
         fileName = ""
         sha = ""
@@ -231,7 +243,15 @@ Private Sub LoadCachedUpdate()
     gLatestVersion = ver
     gLatestFile = fileName
     gLatestSha = sha
-    gUpdateAvailable = (CompareVersions(ver, APP_VERSION) > 0)
+    gUpdateAvailable = True
+End Sub
+
+' DeleteSetting raises when a key is missing.
+Private Sub ClearCachedUpdate()
+    On Error Resume Next
+    DeleteSetting SETTINGS_APP, SETTINGS_SECTION, "LatestVersion"
+    DeleteSetting SETTINGS_APP, SETTINGS_SECTION, "LatestFile"
+    DeleteSetting SETTINGS_APP, SETTINGS_SECTION, "LatestSha"
 End Sub
 
 Private Function IsSnoozed() As Boolean
@@ -245,10 +265,17 @@ Private Sub RunInstall()
     Dim data() As Byte
     Dim target As String
     Dim temp As String
+    Dim ver As String
+    Dim fileName As String
+    Dim sha As String
     Dim manual As Boolean
 
-    manual = (Len(gLatestFile) = 0)
-    If Not ShowUpdateDialog("All-in-one v" & gLatestVersion & " is available (you have v" & APP_VERSION & ")." & vbCrLf & vbCrLf & _
+    ' A background check can replace the globals while the download pumps events.
+    ver = gLatestVersion
+    fileName = gLatestFile
+    sha = gLatestSha
+    manual = (Len(fileName) = 0)
+    If Not ShowUpdateDialog("All-in-one v" & ver & " is available (you have v" & APP_VERSION & ")." & vbCrLf & vbCrLf & _
             "The update takes effect after you restart PowerPoint.", "View changelog", REPO_URL & "/blob/main/CHANGELOG.md", _
             IIf(manual, "Open download page", "Install now")) Then Exit Sub
     If manual Then
@@ -257,33 +284,37 @@ Private Sub RunInstall()
     End If
 
     On Error GoTo Failed
-    reason = DownloadBytes(REPO_URL & "/releases/download/v" & gLatestVersion & "/" & gLatestFile, data)
+    reason = DownloadBytes(REPO_URL & "/releases/download/v" & ver & "/" & fileName, data)
     If Len(reason) > 0 Then GoTo Failed
     If UBound(data) < 3 Or data(0) <> &H50 Or data(1) <> &H4B Then
         reason = "The downloaded file is not a valid add-in."
         GoTo Failed
     End If
-    If Sha256Hex(data) <> gLatestSha Then
+    If Sha256Hex(data) <> sha Then
         reason = "The downloaded file failed its integrity check."
         GoTo Failed
     End If
 
-    target = InstallFolder() & LocalFileName(gLatestVersion)
+    target = InstallFolder() & LocalFileName(ver)
     temp = target & ".tmp"
-    WriteBinary temp, data
+    If Not WriteBinary(temp, data) Then
+        reason = "Could not write to the install folder:" & vbCrLf & InstallFolder()
+        GoTo Failed
+    End If
     If Len(Dir$(target)) > 0 Then Kill target
     Name temp As target
     temp = ""
 
     If Not RegisterUpdate(target) Then
+        On Error Resume Next
         Kill target
-        reason = "PowerPoint did not accept the new add-in."
+        reason = "PowerPoint did not accept the new add-in; your current version is unchanged."
         GoTo Failed
     End If
 
     gUpdateAvailable = False
     RefreshRibbon
-    ShowUpdateDialog "v" & gLatestVersion & " is ready. Restart PowerPoint to finish the update.", "", "", ""
+    ShowUpdateDialog "v" & ver & " is ready. Restart PowerPoint to finish the update.", "", "", ""
     Exit Sub
 
 Failed:
@@ -298,6 +329,7 @@ End Sub
 Private Function DownloadBytes(ByVal url As String, ByRef data() As Byte) As String
     Dim http As Object
     Dim deadline As Date
+    Dim body As Variant
 
     On Error GoTo NetError
     Set http = CreateHttp()
@@ -311,6 +343,13 @@ Private Function DownloadBytes(ByVal url As String, ByRef data() As Byte) As Str
             DownloadBytes = "The download timed out."
             Exit Function
         End If
+        If http.readyState >= 3 Then
+            If DeclaredLength(http) > MAX_DOWNLOAD_BYTES Then
+                http.abort
+                DownloadBytes = "The download is larger than expected."
+                Exit Function
+            End If
+        End If
         DoEvents
         Sleep 50
     Loop
@@ -318,10 +357,26 @@ Private Function DownloadBytes(ByVal url As String, ByRef data() As Byte) As Str
         DownloadBytes = "GitHub answered with HTTP " & http.Status & "."
         Exit Function
     End If
-    data = http.responseBody
+    body = http.responseBody
+    If Not IsArray(body) Then
+        DownloadBytes = "The download was empty."
+        Exit Function
+    End If
+    If UBound(body) - LBound(body) + 1 > MAX_DOWNLOAD_BYTES Then
+        DownloadBytes = "The download is larger than expected."
+        Exit Function
+    End If
+    data = body
     Exit Function
 NetError:
     DownloadBytes = "Could not reach GitHub: " & Err.Description
+End Function
+
+' Returns -1 when the server did not declare a length.
+Private Function DeclaredLength(ByVal http As Object) As Double
+    DeclaredLength = -1
+    On Error Resume Next
+    DeclaredLength = CDbl(http.getResponseHeader("Content-Length"))
 End Function
 
 Private Function Sha256Hex(ByRef data() As Byte) As String
@@ -338,30 +393,76 @@ Private Function Sha256Hex(ByRef data() As Byte) As String
     BCryptCloseAlgorithmProvider hAlg, 0
 End Function
 
-Private Sub WriteBinary(ByVal path As String, ByRef data() As Byte)
+' Returns True only if the complete file was written.
+Private Function WriteBinary(ByVal path As String, ByRef data() As Byte) As Boolean
     Dim f As Integer
 
+    On Error GoTo Failed
     If Len(Dir$(path)) > 0 Then Kill path
     f = FreeFile
     Open path For Binary Access Write As #f
     Put #f, , data
     Close #f
-End Sub
+    f = 0
+    WriteBinary = (FileLen(path) = UBound(data) - LBound(data) + 1)
+    Exit Function
+Failed:
+    On Error Resume Next
+    If f <> 0 Then Close #f
+End Function
 
 ' Registers the new file to auto-load next start without loading it now, and disables older copies.
+' All-or-nothing: on failure the previous AutoLoad states are restored so some version still loads.
 Private Function RegisterUpdate(ByVal path As String) As Boolean
     Dim added As AddIn
     Dim other As AddIn
+    Dim paths As New Collection
+    Dim states As New Collection
+    Dim ok As Boolean
 
     On Error GoTo Failed
+    For Each other In Application.AddIns
+        If other.Name Like "All-in-one*" Then
+            paths.Add other.FullName
+            states.Add other.AutoLoad
+        End If
+    Next
+
     Set added = Application.AddIns.Add(path)
     added.AutoLoad = msoTrue
     For Each other In Application.AddIns
         If other.Name Like "All-in-one*" And StrComp(other.FullName, path, vbTextCompare) <> 0 Then other.AutoLoad = msoFalse
     Next
-    RegisterUpdate = (added.AutoLoad = msoTrue)
+
+    ok = (added.AutoLoad = msoTrue)
+    For Each other In Application.AddIns
+        If other.Name Like "All-in-one*" And StrComp(other.FullName, path, vbTextCompare) <> 0 Then
+            If other.AutoLoad <> msoFalse Then ok = False
+        End If
+    Next
+    If ok Then
+        RegisterUpdate = True
+        Exit Function
+    End If
+
 Failed:
+    RollbackRegistration path, paths, states
 End Function
+
+Private Sub RollbackRegistration(ByVal path As String, ByVal paths As Collection, ByVal states As Collection)
+    Dim other As AddIn
+    Dim i As Long
+
+    On Error Resume Next
+    For i = 1 To paths.Count
+        For Each other In Application.AddIns
+            If StrComp(other.FullName, paths(i), vbTextCompare) = 0 Then other.AutoLoad = states(i)
+        Next
+    Next
+    For i = Application.AddIns.Count To 1 Step -1
+        If StrComp(Application.AddIns(i).FullName, path, vbTextCompare) = 0 Then Application.AddIns.Remove i
+    Next
+End Sub
 
 ' Folder of the running add-in, so a custom install location is respected.
 Private Function InstallFolder() As String
@@ -378,11 +479,13 @@ Private Function InstallFolder() As String
     If Right$(InstallFolder, 1) <> "\" Then InstallFolder = InstallFolder & "\"
 End Function
 
-' Removes older versioned files and add-in entries whose file is gone; locked or missing files are ignored.
+' Removes older versioned files and entries whose file is gone, and disables older entries that
+' could not be deleted (locked) so two versions never load together; failures are ignored.
 Public Sub CleanupOldVersions()
     Dim folder As String
     Dim fileName As String
     Dim ver As String
+    Dim full As String
     Dim stale As New Collection
     Dim item As Variant
     Dim i As Long
@@ -391,8 +494,8 @@ Public Sub CleanupOldVersions()
     folder = InstallFolder()
     fileName = Dir$(folder & FILE_PREFIX & "*" & FILE_SUFFIX)
     Do While Len(fileName) > 0
-        ver = Replace(Mid$(fileName, Len(FILE_PREFIX) + 1, Len(fileName) - Len(FILE_PREFIX) - Len(FILE_SUFFIX)), "-", ".")
-        If IsValidVersion(ver) Then
+        ver = VersionFromFileName(fileName)
+        If Len(ver) > 0 Then
             If CompareVersions(ver, APP_VERSION) < 0 Then stale.Add fileName
         End If
         fileName = Dir$
@@ -403,8 +506,16 @@ Public Sub CleanupOldVersions()
 
     For i = Application.AddIns.Count To 1 Step -1
         If Application.AddIns(i).Name Like "All-in-one*" Then
-            If Len(Application.AddIns(i).FullName) > 0 Then
-                If Len(Dir$(Application.AddIns(i).FullName)) = 0 Then Application.AddIns.Remove i
+            full = Application.AddIns(i).FullName
+            If Len(full) > 0 Then
+                If Len(Dir$(full)) = 0 Then
+                    Application.AddIns.Remove i
+                Else
+                    ver = VersionFromFileName(Mid$(full, InStrRev(full, "\") + 1))
+                    If Len(ver) > 0 Then
+                        If CompareVersions(ver, APP_VERSION) < 0 Then Application.AddIns(i).AutoLoad = msoFalse
+                    End If
+                End If
             End If
         End If
     Next
@@ -443,6 +554,17 @@ End Sub
 ' AddIns.Add rejects names with extra dots, so the saved copy uses dashes (All-in-one-v1-2-3.ppam).
 Private Function LocalFileName(ByVal ver As String) As String
     LocalFileName = FILE_PREFIX & Replace(ver, ".", "-") & FILE_SUFFIX
+End Function
+
+' Returns the version in a versioned add-in file name (dots or dashes), or "" if it is not one.
+Private Function VersionFromFileName(ByVal fileName As String) As String
+    Dim ver As String
+
+    If Len(fileName) <= Len(FILE_PREFIX) + Len(FILE_SUFFIX) Then Exit Function
+    If StrComp(Left$(fileName, Len(FILE_PREFIX)), FILE_PREFIX, vbTextCompare) <> 0 Then Exit Function
+    If StrComp(Right$(fileName, Len(FILE_SUFFIX)), FILE_SUFFIX, vbTextCompare) <> 0 Then Exit Function
+    ver = Replace(Mid$(fileName, Len(FILE_PREFIX) + 1, Len(fileName) - Len(FILE_PREFIX) - Len(FILE_SUFFIX)), "-", ".")
+    If IsValidVersion(ver) Then VersionFromFileName = ver
 End Function
 
 Private Function IsValidVersion(ByVal ver As String) As Boolean
