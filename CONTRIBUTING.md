@@ -73,7 +73,7 @@ $env:GH_TOKEN = "<token>"
 ```
 
 - `uv run cz commit` (or `uv run cz c`) prompts for type, scope and message, then commits.
-- `uv run cz bump` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), adds a versioned section to `CHANGELOG.md`, builds the release assets (which refreshes `uv.lock`), commits with `git commit -a`, tags `v<version>` and pushes. Start from a clean working tree, since every tracked change goes into the release commit, and close PowerPoint first. Avoid running `cz changelog` by itself; it generates an `Unreleased` section.
+- `uv run cz bump` bumps the version from the commits since the last tag (`feat` = minor, `fix` = patch, breaking = major), adds a versioned section to `CHANGELOG.md`, builds the release assets (which refreshes `uv.lock`), commits with `git commit -a`, tags `v<version>` locally (push with `git push origin main --follow-tags`). Start from a clean working tree, since every tracked change goes into the release commit, and close PowerPoint first. Avoid running `cz changelog` by itself; it generates an `Unreleased` section.
 - `uv run scripts/release.py` creates the GitHub Release as a draft, uploads `Install.ps1` and the versioned `.ppam`, then publishes it after you press Enter (Ctrl+C keeps the draft). This order is required for repositories with immutable releases, which lock assets on publish. If an upload fails the draft is left in place; delete it and re-run.
 - `uv run cz bump --dry-run` previews the release without changing anything; `--increment MAJOR`, `MINOR` or `PATCH` overrides the level.
 

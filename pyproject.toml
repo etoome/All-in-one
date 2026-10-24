@@ -32,7 +32,6 @@ change_type_map = { feat = "Features", fix = "Bug Fixes", perf = "Performance", 
 change_type_order = ["Features", "Bug Fixes", "Performance", "Refactoring"]
 # Runs after pyproject.toml gets the new version; the release commit uses `git commit -a`, so the refreshed uv.lock is included.
 pre_bump_hooks = ["uv run --upgrade-package all-in-one scripts/build.py"]
-post_bump_hooks = ["git push origin main --follow-tags"]
 
 [tool.commitizen.extras]
 repo_url = "https://github.com/etoome/All-in-one"
