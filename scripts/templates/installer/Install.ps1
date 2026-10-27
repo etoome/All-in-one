@@ -135,7 +135,11 @@ else {
             Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
             throw
         }
-        $downloadedHash = (Get-FileHash -Path $downloadPath -Algorithm SHA256).Hash
+        try { $downloadedHash = (Get-FileHash -Path $downloadPath -Algorithm SHA256).Hash }
+        catch {
+            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
+            throw "The downloaded add-in could not be read, most likely because antivirus blocked it. Nothing was installed. Download it manually from https://github.com/etoome/All-in-one/releases. Details: $($_.Exception.Message)"
+        }
         if ($downloadedHash -ne '@@SHA256@@') {
             Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
             throw "The downloaded add-in failed its integrity check (SHA-256 mismatch). Nothing was installed."

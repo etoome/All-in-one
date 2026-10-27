@@ -5,8 +5,6 @@ Option Explicit
 ' Pure VBA + built-in Windows components, so it needs no PowerShell, scheduled task or admin rights.
 
 Private Declare PtrSafe Function ShellExecute Lib "shell32.dll" Alias "ShellExecuteW" (ByVal hwnd As LongPtr, ByVal lpOperation As LongPtr, ByVal lpFile As LongPtr, ByVal lpParameters As LongPtr, ByVal lpDirectory As LongPtr, ByVal nShowCmd As Long) As LongPtr
-Private Declare PtrSafe Function URLDownloadToFileW Lib "urlmon" (ByVal pCaller As LongPtr, ByVal szURL As LongPtr, ByVal szFileName As LongPtr, ByVal dwReserved As Long, ByVal lpfnCB As LongPtr) As Long
-Private Declare PtrSafe Function DeleteUrlCacheEntryW Lib "wininet" (ByVal lpszUrlName As LongPtr) As Long
 Private Declare PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt.dll" (ByRef phAlgorithm As LongPtr, ByVal pszAlgId As LongPtr, ByVal pszImplementation As LongPtr, ByVal dwFlags As Long) As Long
 Private Declare PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt.dll" (ByVal hAlgorithm As LongPtr, ByVal dwFlags As Long) As Long
 Private Declare PtrSafe Function BCryptHash Lib "bcrypt.dll" (ByVal hAlgorithm As LongPtr, ByVal pbSecret As LongPtr, ByVal cbSecret As Long, ByVal pbInput As LongPtr, ByVal cbInput As Long, ByVal pbOutput As LongPtr, ByVal cbOutput As Long) As Long
@@ -37,7 +35,6 @@ Private gSnoozedUntil As Date
 Private gUpdateAvailable As Boolean
 Private gBusy As Boolean
 Private gProgress As Boolean
-Private gStepFraction As Double
 ' ---- Ribbon callbacks ----
 
 Sub GetUpdateVisible(control As IRibbonControl, ByRef returnedVal)
@@ -370,30 +367,15 @@ Private Function FetchManifest(ByVal ver As String) As String
     SaveCachedUpdate
 End Function
 
-' Returns an error message, or "" on success. WinHTTP first; urlmon when WinHTTP cannot reach GitHub.
+' Returns an error message, or "" on success.
 Private Function DownloadBytes(ByVal url As String, ByRef data() As Byte) As String
-    Dim retry As Boolean
-    Dim fallback As String
-
-    DownloadBytes = DownloadWinHttp(url, data, retry)
-    If Not retry Then Exit Function
-
-    ProgressStep gStepFraction, "Retrying download..."
-    fallback = DownloadUrlmon(url, data)
-    If Len(fallback) = 0 Then
-        DownloadBytes = ""
-    Else
-        DownloadBytes = DownloadBytes & vbCrLf & fallback
-    End If
-End Function
-
-' Sets retry when the failure may be specific to WinHTTP (no connection, proxy authentication).
-Private Function DownloadWinHttp(ByVal url As String, ByRef data() As Byte, ByRef retry As Boolean) As String
     Dim http As Object
     Dim body As Variant
 
     On Error GoTo NetError
     Set http = CreateWinHttp()
+    ' 0 = always send the Windows logon to a proxy that asks for it.
+    http.SetAutoLogonPolicy 0
     http.SetTimeouts 15000, 15000, 30000, DOWNLOAD_TIMEOUT_SECONDS * 1000
     http.Open "GET", url, False
     http.SetRequestHeader "User-Agent", "All-in-one/" & APP_VERSION
@@ -401,67 +383,25 @@ Private Function DownloadWinHttp(ByVal url As String, ByRef data() As Byte, ByRe
     Select Case http.Status
         Case 200
         Case 407
-            retry = True
-            DownloadWinHttp = "The proxy requires authentication."
+            DownloadBytes = "The proxy requires authentication."
             Exit Function
         Case Else
-            DownloadWinHttp = "GitHub answered with HTTP " & http.Status & "."
+            DownloadBytes = "GitHub answered with HTTP " & http.Status & "."
             Exit Function
     End Select
     body = http.ResponseBody
     If Not IsArray(body) Then
-        DownloadWinHttp = "The download was empty."
+        DownloadBytes = "The download was empty."
         Exit Function
     End If
     If UBound(body) - LBound(body) + 1 > MAX_DOWNLOAD_BYTES Then
-        DownloadWinHttp = "The download is larger than expected."
+        DownloadBytes = "The download is larger than expected."
         Exit Function
     End If
     data = body
     Exit Function
 NetError:
-    retry = True
-    DownloadWinHttp = "Could not reach GitHub: " & Err.Description
-End Function
-
-' URLMON uses the user's WinINet proxy settings and follows redirects across hosts.
-Private Function DownloadUrlmon(ByVal url As String, ByRef data() As Byte) As String
-    Dim temp As String
-    Dim hr As Long
-    Dim size As Long
-    Dim f As Integer
-
-    temp = Environ$("TEMP") & "\All-in-one-download-" & Format$(Now, "yyyymmddhhnnss") & ".tmp"
-    On Error GoTo Failed
-    DeleteUrlCacheEntryW StrPtr(url)
-    hr = URLDownloadToFileW(0, StrPtr(url), StrPtr(temp), 0, 0)
-    If hr <> 0 Then
-        DownloadUrlmon = "The fallback download failed (0x" & Hex$(hr) & ")."
-        GoTo Cleanup
-    End If
-    size = FileLen(temp)
-    If size = 0 Then
-        DownloadUrlmon = "The download was empty."
-        GoTo Cleanup
-    End If
-    If size > MAX_DOWNLOAD_BYTES Then
-        DownloadUrlmon = "The download is larger than expected."
-        GoTo Cleanup
-    End If
-    ReDim data(0 To size - 1)
-    f = FreeFile
-    Open temp For Binary Access Read As #f
-    Get #f, , data
-    Close #f
-    f = 0
-Cleanup:
-    On Error Resume Next
-    If f <> 0 Then Close #f
-    Kill temp
-    Exit Function
-Failed:
-    DownloadUrlmon = "The fallback download failed: " & Err.Description
-    Resume Cleanup
+    DownloadBytes = "Could not reach GitHub: " & Err.Description
 End Function
 
 Private Function Sha256Hex(ByRef data() As Byte) As String
@@ -611,13 +551,11 @@ End Sub
 ' The progress dialog is optional: if the form is unavailable the install still runs and the result is a plain message box.
 Private Sub ProgressBegin(ByVal message As String)
     On Error Resume Next
-    gStepFraction = 0
     UpdateDialog.BeginProgress MSG_TITLE, message
     gProgress = (Err.Number = 0)
 End Sub
 
 Private Sub ProgressStep(ByVal fraction As Double, ByVal message As String)
-    gStepFraction = fraction
     If Not gProgress Then Exit Sub
     On Error Resume Next
     UpdateDialog.SetProgress fraction, message
