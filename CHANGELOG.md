@@ -1,3 +1,9 @@
+## v1.2.1 (2026-10-27)
+
+### Refactoring
+
+- **updater**: Remove urlmon and wininet ([`a35146a`](https://github.com/etoome/All-in-one/commit/a35146a84840b3da857c871d78c1c746aa04c0db))
+
 ## v1.2.0 (2026-10-24)
 
 ### Features
