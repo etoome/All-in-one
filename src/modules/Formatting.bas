@@ -77,9 +77,8 @@ Private gHasCopied As Boolean
 Sub CopyShapeFormatting(control As IRibbonControl)
     Dim selectedShapes As ShapeRange
 
-    Set selectedShapes = SelectedShapeRange()
+    Set selectedShapes = SelectedShapes(SelectionSingle)
     If selectedShapes Is Nothing Then Exit Sub
-    If selectedShapes.Count <> 1 Then Exit Sub
 
     gCopied = SnapshotShape(selectedShapes(1))
     gHasCopied = True
@@ -94,7 +93,7 @@ Sub ApplyShapeFormatting(control As IRibbonControl)
 
     If Not gHasCopied Then Exit Sub
 
-    Set selectedShapes = SelectedShapeRange()
+    Set selectedShapes = SelectedShapes(SelectionAny)
     If selectedShapes Is Nothing Then Exit Sub
     For i = 1 To selectedShapes.Count
         ApplyFormattingItem selectedShapes(i), control.Tag
@@ -102,7 +101,7 @@ Sub ApplyShapeFormatting(control As IRibbonControl)
 End Sub
 
 Sub EnableApplyFormatting(control As IRibbonControl, ByRef returnedVal)
-    returnedVal = gHasCopied And (SelectedShapeCount >= 1)
+    returnedVal = gHasCopied And Not SelectedShapes(SelectionAny) Is Nothing
 End Sub
 
 ' The Copied*Color functions return False when nothing is copied or the source has no solid color to show.

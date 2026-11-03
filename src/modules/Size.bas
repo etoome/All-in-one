@@ -7,9 +7,8 @@ Sub ObjectsSameHeight(control As IRibbonControl)
     Dim referenceHeight As Single
     Dim i As Long
 
-    If SelectedShapeCount < 2 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionMultiple)
+    If shapes Is Nothing Then Exit Sub
     referenceHeight = shapes(1).Height
 
     For i = 2 To shapes.Count
@@ -23,9 +22,8 @@ Sub ObjectsSameWidth(control As IRibbonControl)
     Dim referenceWidth As Single
     Dim i As Long
 
-    If SelectedShapeCount < 2 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionMultiple)
+    If shapes Is Nothing Then Exit Sub
     referenceWidth = shapes(1).Width
 
     For i = 2 To shapes.Count
@@ -41,9 +39,8 @@ Sub ObjectsSameSize(control As IRibbonControl)
     Dim wasLocked As MsoTriState
     Dim i As Long
 
-    If SelectedShapeCount < 2 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionMultiple)
+    If shapes Is Nothing Then Exit Sub
     referenceWidth = shapes(1).Width
     referenceHeight = shapes(1).Height
 
@@ -70,9 +67,8 @@ Private Sub SetAspectRatioLock(locked As Boolean)
     Dim shapes As ShapeRange
     Dim i As Long
 
-    If SelectedShapeCount < 1 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionAny)
+    If shapes Is Nothing Then Exit Sub
     For i = 1 To shapes.Count
         shapes(i).LockAspectRatio = IIf(locked, msoTrue, msoFalse)
     Next i
@@ -91,10 +87,10 @@ Sub GetLockAspectRatioNotVisible(control As IRibbonControl, ByRef returnedVal)
 End Sub
 
 Private Function IsAspectRatioLocked() As Boolean
-    If SelectedShapeCount < 1 Then
-        IsAspectRatioLocked = False
-    Else
-        IsAspectRatioLocked = (ActiveWindow.Selection.ShapeRange(1).LockAspectRatio = msoTrue)
-    End If
+    Dim shapes As ShapeRange
+
+    Set shapes = SelectedShapes(SelectionAny)
+    If shapes Is Nothing Then Exit Function
+    IsAspectRatioLocked = (shapes(1).LockAspectRatio = msoTrue)
 End Function
 

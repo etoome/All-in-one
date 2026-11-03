@@ -38,9 +38,8 @@ Private Sub AlignToFirstShape(ByVal mode As String)
     Dim firstIndex As Long
     Dim i As Long
 
-    If SelectedShapeCount < 1 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionAny)
+    If shapes Is Nothing Then Exit Sub
 
     If shapes.Count = 1 Then
         refLeft = 0

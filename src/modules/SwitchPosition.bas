@@ -7,9 +7,8 @@ Sub SwitchObjectPosition(control As IRibbonControl)
     Dim swapLeft As Single
     Dim swapTop As Single
 
-    If SelectedShapeCount <> 2 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionPair)
+    If shapes Is Nothing Then Exit Sub
 
     swapLeft = shapes(1).Left
     swapTop = shapes(1).Top

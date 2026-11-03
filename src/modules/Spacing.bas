@@ -36,11 +36,12 @@ End Sub
 
 ' The built-in Distribute is disabled for two shapes, so two are spread across the slide instead.
 Private Sub DistributeShapes(ByVal direction As MsoDistributeCmd)
-    If SelectedShapeCount < 2 Then Exit Sub
+    Dim shapes As ShapeRange
 
-    With ActiveWindow.Selection.ShapeRange
-        .Distribute direction, IIf(.Count = 2, msoTrue, msoFalse)
-    End With
+    Set shapes = SelectedShapes(SelectionMultiple)
+    If shapes Is Nothing Then Exit Sub
+
+    shapes.Distribute direction, IIf(shapes.Count = 2, msoTrue, msoFalse)
 End Sub
 
 ' Changes each adjacent gap by sign * SPACING_STEP while keeping the group centered.
@@ -53,9 +54,8 @@ Private Sub AdjustSpacing(ByVal horizontal As Boolean, ByVal sign As Integer)
     Dim n As Long, i As Long, j As Long, tmp As Long
     Dim delta As Single, newCenter As Single
 
-    If SelectedShapeCount < 2 Then Exit Sub
-
-    Set shapes = ActiveWindow.Selection.ShapeRange
+    Set shapes = SelectedShapes(SelectionMultiple)
+    If shapes Is Nothing Then Exit Sub
     n = shapes.Count
 
     ReDim order(1 To n)

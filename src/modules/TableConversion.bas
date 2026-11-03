@@ -23,11 +23,10 @@ Sub ConvertShapesToTable(control As IRibbonControl)
     Dim tableWidth As Double, tableHeight As Double
     Dim msg As String
 
-    If Not CanUseActiveWindow() Then Exit Sub
-    If SelectedShapeCount < 2 Then Exit Sub
+    Set shapes = SelectedShapes(SelectionShapeGrid)
+    If shapes Is Nothing Then Exit Sub
 
     On Error GoTo Fail
-    Set shapes = ActiveWindow.Selection.ShapeRange
     Set container = shapes(1).Parent ' slide, layout or master, so this also works in master view
     n = shapes.Count
 
@@ -125,6 +124,7 @@ End Sub
 
 ' Ribbon onAction callback: converts the selected table into one rectangle per cell (merged cells become one), and deletes the table.
 Sub ConvertTableToShapes(control As IRibbonControl)
+    Dim shapes As ShapeRange
     Dim tableShape As Shape
     Dim tbl As PowerPoint.Table
     Dim container As Object
@@ -136,10 +136,9 @@ Sub ConvertTableToShapes(control As IRibbonControl)
     Dim r As Long, c As Long, i As Long
     Dim msg As String
 
-    If Not CanUseActiveWindow() Then Exit Sub
-    If SelectedShapeCount <> 1 Then Exit Sub
-    Set tableShape = ActiveWindow.Selection.ShapeRange(1)
-    If tableShape.HasTable <> msoTrue Then Exit Sub
+    Set shapes = SelectedShapes(SelectionTable)
+    If shapes Is Nothing Then Exit Sub
+    Set tableShape = shapes(1)
 
     On Error GoTo Fail
     Set tbl = tableShape.Table
