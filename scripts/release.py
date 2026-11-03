@@ -13,12 +13,15 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST_DIR = ROOT / "dist"
 REPO = "etoome/All-in-one"
 API = f"https://api.github.com/repos/{REPO}"
+# Set by build.py only when --update-url was left at its GitHub default.
+GITHUB_BUILD_MARK = b"update-url=github"
 
 
 def read_version() -> str:
@@ -57,14 +60,14 @@ def main() -> None:
 
     version = args.version or read_version()
     tag = f"v{version}"
-    assets = [
-        DIST_DIR / "Install.ps1",
-        DIST_DIR / f"All-in-one-v{version}.ppam",
-        DIST_DIR / "update.txt",
-    ]
+    assets = [DIST_DIR / f"All-in-one-v{version}.zip"]
     missing = [str(path) for path in assets if not path.is_file()]
     if missing:
         sys.exit(f"Missing release assets (run scripts/build.py): {', '.join(missing)}")
+    for path in assets:
+        with zipfile.ZipFile(path) as package:
+            if package.comment != GITHUB_BUILD_MARK:
+                sys.exit(f"{path.name} was not built for GitHub (custom --update-url?). Rebuild with plain `uv run scripts/build.py`.")
 
     release = request("POST", f"{API}/releases", token, json.dumps({
         "tag_name": tag,

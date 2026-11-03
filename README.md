@@ -10,30 +10,18 @@ All-in-one adds a tab at the start of your ribbon that gathers the commands you 
 
 You need Windows and the desktop version of PowerPoint.
 
-1. Press **Win + R** to open the Run box.
-2. Copy the command below, paste it into the Run box, and press **Enter**:
+1. Download `All-in-one-vX.Y.Z.zip` from the [latest release](https://github.com/etoome/All-in-one/releases/latest).
+2. Double-click the zip to open it in File Explorer, then double-click **Install.cmd** to install the add-in (Windows will extract it automatically).
+3. If Windows shows a security warning, choose **Run**. Restart PowerPoint when the installer finishes. The **All-in-one** tab appears at the start of the ribbon.
 
-   ```
-   powershell -noe -ep bypass -c "irm https://github.com/etoome/All-in-one/releases/latest/download/Install.ps1|iex"
-   ```
+The installer works for your user only and does not need administrator rights.
 
-   > :warning: Your antivirus may warn about or block the installer because it downloads and runs a PowerShell script. Do NOT disable your antivirus to install it.
-
-   A PowerShell window opens (PowerShell is built into Windows). The command downloads and runs the installer from this project's GitHub releases. It installs for your user only and does not need administrator rights.
-3. Wait for it to finish, close the window, then open PowerPoint. The **All-in-one** tab appears at the start of the ribbon.
-
-The add-in checks GitHub once a day for updates. When one is available, an **Update** group appears at the start of the tab. Click **Update to vX.Y.Z**, confirm, then restart PowerPoint. To update manually or if the in-app download is blocked, run the same install command again.
+The add-in checks GitHub once a day for new releases. When one is available, an **Update** group appears at the start of the tab.
 
 <details>
 <summary>Uninstall</summary>
 
-Press **Win + R**, paste this command, and press **Enter**:
-
-```
-powershell -noe -ep bypass -c "iex ('& {'+(irm https://github.com/etoome/All-in-one/releases/latest/download/Install.ps1)+'} -Uninstall')"
-```
-
-Restart PowerPoint and the tab is gone.
+Run `Install.cmd -Uninstall` from the extracted folder, then restart PowerPoint and the tab is gone.
 
 </details>
 

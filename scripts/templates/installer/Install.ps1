@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
     Installs (or removes) the All-in-one .ppam as a PowerPoint add-in for the current user.
-    Uses a .ppam beside this script, or downloads the matching release asset.
+    Uses the .ppam beside this script.
 #>
 [CmdletBinding()]
 param(
@@ -78,15 +78,8 @@ if (-not $officeVersion) { throw "Could not find an installed PowerPoint version
 $addInsKey   = "HKCU:\Software\Microsoft\Office\$officeVersion\PowerPoint\AddIns"
 $registryKey = Join-Path $addInsKey $addInName
 
-# The in-app updater registers new versions through PowerPoint, which may use a different key name,
-# so match on the file the entry points to instead of the key name.
 function Remove-AddInRegistrations {
-    Get-ChildItem $addInsKey -ErrorAction SilentlyContinue | ForEach-Object {
-        $path = (Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue).Path
-        if ($_.PSChildName -like "$addInName*" -or ($path -and (Split-Path $path -Leaf) -like "$addInName*")) {
-            Remove-Item $_.PSPath -Recurse -Force
-        }
-    }
+    Remove-Item $registryKey -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # The installed file name changes with each version, so clear every All-in-one* file
@@ -96,6 +89,13 @@ function Remove-InstalledAddIns {
         $file = $_
         Invoke-FileOp { Remove-Item $file.FullName -Force }
     }
+}
+
+# Highest installed version.
+function Get-InstalledAddIn {
+    Get-ChildItem -Path $installDir -Filter "$addInName*.ppam" -File -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -match '^All-in-one-v(\d+)\.(\d+)\.(\d+)\.ppam$') { [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])" }
+    } | Sort-Object -Descending | Select-Object -First 1
 }
 
 if ($Uninstall) {
@@ -116,58 +116,39 @@ if ($Uninstall) {
     Write-Host ""
 }
 else {
-    $downloadUrl = 'https://github.com/etoome/All-in-one/releases/download/v@@VERSION@@/All-in-one-v@@VERSION@@.ppam'
+    if (-not $ppamFile) {
+        throw "The add-in file was not found next to this script. Extract the whole zip first, then run Install.cmd."
+    }
+    $installed = Get-InstalledAddIn
     $actions = @()
-    if (-not $ppamFile) { $actions += "Download All-in-one v@@VERSION@@ from GitHub" }
-    $actions += "Install the add-in for your user account ($installDir), replacing any older version"
+    if ($installed) {
+        $actions += "Replace the installed v$installed with v@@VERSION@@ ($installDir)"
+        if ([version]'@@VERSION@@' -lt $installed) { $actions += "Note: this is older than the version you have installed" }
+    }
+    else {
+        $actions += "Install the add-in for your user account ($installDir)"
+    }
     $actions += "Set PowerPoint to load it automatically when it starts"
+    $actions += "Note: updates are not installed automatically. New versions are published on @@UPDATE_HOST@@"
     if (-not (Confirm-Actions $actions)) { return }
 
-    $downloadDirectory = $null
-    if (-not $ppamFile) {
-        $downloadDirectory = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
-        New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $downloadPath = Join-Path $downloadDirectory 'All-in-one-v@@VERSION@@.ppam'
-        Write-Step "Downloading All-in-one v@@VERSION@@ from GitHub..."
-        try { Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath -UseBasicParsing }
-        catch {
-            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
-            throw
-        }
-        try { $downloadedHash = (Get-FileHash -Path $downloadPath -Algorithm SHA256).Hash }
-        catch {
-            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
-            throw "The downloaded add-in could not be read, most likely because antivirus blocked it. Nothing was installed. Download it manually from https://github.com/etoome/All-in-one/releases. Details: $($_.Exception.Message)"
-        }
-        if ($downloadedHash -ne '@@SHA256@@') {
-            Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
-            throw "The downloaded add-in failed its integrity check (SHA-256 mismatch). Nothing was installed."
-        }
-        $ppamFile = Get-Item -Path $downloadPath
-    }
     $installPath = Join-Path $installDir $ppamFile.Name
 
-    try {
-        Write-Step "Copying add-in to $installDir..."
-        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-        Remove-InstalledAddIns
-        Invoke-FileOp { Copy-Item -Path $ppamFile.FullName -Destination $installPath -Force }
-        # Strip Mark-of-the-Web so PowerPoint trusts the add-in at startup.
-        Unblock-File -Path $installPath
+    Write-Step "Copying add-in to $installDir..."
+    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+    Remove-InstalledAddIns
+    Invoke-FileOp { Copy-Item -Path $ppamFile.FullName -Destination $installPath -Force }
+    # Strip Mark-of-the-Web so PowerPoint trusts the add-in at startup.
+    Unblock-File -Path $installPath
 
-        Write-Step "Setting PowerPoint to load All-in-one at startup..."
-        Remove-AddInRegistrations
-        New-Item -Path $registryKey -Force | Out-Null
-        New-ItemProperty -Path $registryKey -Name 'Path'     -Value $installPath -PropertyType String -Force | Out-Null
-        New-ItemProperty -Path $registryKey -Name 'AutoLoad' -Value 1            -PropertyType DWord  -Force | Out-Null
+    Write-Step "Setting PowerPoint to load All-in-one at startup..."
+    Remove-AddInRegistrations
+    New-Item -Path $registryKey -Force | Out-Null
+    New-ItemProperty -Path $registryKey -Name 'Path'     -Value $installPath -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryKey -Name 'AutoLoad' -Value 1            -PropertyType DWord  -Force | Out-Null
 
-        Write-Ok "Installed: $installPath"
-        Write-Host ""
-        Write-Note "Restart PowerPoint to activate the All-in-one tab."
-        Write-Host ""
-    }
-    finally {
-        if ($downloadDirectory) { Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue }
-    }
+    Write-Ok "Installed: $installPath"
+    Write-Host ""
+    Write-Note "Restart PowerPoint to activate the All-in-one tab."
+    Write-Host ""
 }

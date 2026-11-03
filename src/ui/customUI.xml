@@ -6,10 +6,10 @@
         <group id="update" label="Update" image="update" getVisible="GetUpdateVisible">
           <box id="update.box" boxStyle="vertical">
             <button id="update.install"
-              getLabel="GetUpdateLabel" onAction="InstallUpdate"
+              getLabel="GetUpdateLabel" onAction="OpenUpdatePage"
               image="update"
               screentip="Update All-in-one"
-              supertip="Download and install the new version. It takes effect after PowerPoint restarts." />
+              supertip="You have v@@VERSION@@. Open the download page for the new version." />
             <button id="update.changelog" label="What's new"
               onAction="OpenChangelog" image="info"
               screentip="Changelog"
