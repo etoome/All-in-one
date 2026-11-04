@@ -1,3 +1,15 @@
+## v1.2.2 (2026-11-04)
+
+### Bug Fixes
+
+- **updater**: Remove auto updater and package releases as installable ZIPs ([`b6573d3`](https://github.com/etoome/All-in-one/commit/b6573d33099fd4e1b01627d25fdc2e8253729598))
+- **commitizen**: Pre bump hook ([`03c29b5`](https://github.com/etoome/All-in-one/commit/03c29b5d174a49731bfc432d5a470936585f6230))
+
+### Refactoring
+
+- Remove duplicate code ([`6da3c05`](https://github.com/etoome/All-in-one/commit/6da3c05eb5ad26a101c8285d35e18c21be674882))
+- Shape selection ([`6335339`](https://github.com/etoome/All-in-one/commit/6335339a5e6377a2492138feddcaeefda037ac6a))
+
 ## v1.2.1 (2026-10-27)
 
 ### Refactoring
