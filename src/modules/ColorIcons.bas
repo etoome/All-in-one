@@ -56,14 +56,7 @@ Sub GetApplyColorImage(control As IRibbonControl, ByRef returnedVal)
     Dim icon As IPictureDisp
 
     On Error Resume Next
-    Select Case control.Tag
-        Case "fillcolor"
-            hasColor = CopiedFillColor(barColor)
-        Case "linestyle"
-            hasColor = CopiedLineColor(barColor)
-        Case "textcolor"
-            hasColor = CopiedTextColor(barColor)
-    End Select
+    hasColor = CopiedColor(control.Tag, barColor)
 
     Set icon = BuildColorIcon(control.Tag, barColor, hasColor)
     If Not icon Is Nothing Then Set returnedVal = icon

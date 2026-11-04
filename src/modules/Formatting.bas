@@ -104,28 +104,26 @@ Sub EnableApplyFormatting(control As IRibbonControl, ByRef returnedVal)
     returnedVal = gHasCopied And Not SelectedShapes(SelectionAny) Is Nothing
 End Sub
 
-' The Copied*Color functions return False when nothing is copied or the source has no solid color to show.
-Public Function CopiedFillColor(ByRef rgbColor As Long) As Boolean
+' Color shown for a formatting item tag ("fillcolor", "linestyle" or "textcolor"); False when nothing is copied or the source has no solid color.
+Public Function CopiedColor(ByVal tag As String, ByRef rgbColor As Long) As Boolean
     If Not gHasCopied Then Exit Function
-    If Not gCopied.HasFill Then Exit Function
-    If gCopied.FillVisible = msoFalse Or gCopied.FillType <> msoFillSolid Then Exit Function
-    rgbColor = gCopied.FillColor
-    CopiedFillColor = True
-End Function
 
-Public Function CopiedLineColor(ByRef rgbColor As Long) As Boolean
-    If Not gHasCopied Then Exit Function
-    If Not gCopied.HasLine Then Exit Function
-    If gCopied.LineVisible = msoFalse Then Exit Function
-    rgbColor = gCopied.LineColor
-    CopiedLineColor = True
-End Function
-
-Public Function CopiedTextColor(ByRef rgbColor As Long) As Boolean
-    If Not gHasCopied Then Exit Function
-    If Not gCopied.HasTextColor Then Exit Function
-    rgbColor = gCopied.TextColor
-    CopiedTextColor = True
+    Select Case tag
+        Case "fillcolor"
+            If Not gCopied.HasFill Then Exit Function
+            If gCopied.FillVisible = msoFalse Or gCopied.FillType <> msoFillSolid Then Exit Function
+            rgbColor = gCopied.FillColor
+        Case "linestyle"
+            If Not gCopied.HasLine Then Exit Function
+            If gCopied.LineVisible = msoFalse Then Exit Function
+            rgbColor = gCopied.LineColor
+        Case "textcolor"
+            If Not gCopied.HasTextColor Then Exit Function
+            rgbColor = gCopied.TextColor
+        Case Else
+            Exit Function
+    End Select
+    CopiedColor = True
 End Function
 
 Private Sub ApplyFormattingItem(shp As Shape, ByVal tag As String)

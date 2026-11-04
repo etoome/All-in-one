@@ -22,7 +22,7 @@ Private gUpdateAvailable As Boolean
 ' ---- Ribbon callbacks ----
 
 Sub GetUpdateVisible(control As IRibbonControl, ByRef returnedVal)
-    returnedVal = gUpdateAvailable And Not IsSnoozed()
+    returnedVal = gUpdateAvailable And Not IsSnoozedAt(gSnoozedVersion, gLatestVersion, gSnoozedUntil, Now)
 End Sub
 
 Sub GetUpdateLabel(control As IRibbonControl, ByRef returnedVal)
@@ -52,7 +52,7 @@ End Sub
 Public Sub StartUpdateCheck()
     On Error GoTo Failed
     LoadCachedUpdate
-    If Not CheckIsDue() Then Exit Sub
+    If Not IsCheckDue(ParseStamp(GetSetting(SETTINGS_APP, SETTINGS_SECTION, "LastCheck", "")), Now) Then Exit Sub
     Set gRequest = CreateHttp()
     If gRequest Is Nothing Then Exit Sub
     gRequest.Open "GET", FEED_URL, True
@@ -68,6 +68,7 @@ End Sub
 Public Sub PollUpdateCheck()
     If gRequest Is Nothing Then Exit Sub
     Dim body As String
+    Dim ver As String
 
     On Error GoTo Failed
     If gRequest.readyState <> 4 Then
@@ -80,7 +81,9 @@ Public Sub PollUpdateCheck()
 
     If gRequest.Status = 200 Then body = gRequest.responseText
     Set gRequest = Nothing
-    If Not ParseFeed(body) Then Exit Sub
+    ver = LatestVersionInFeed(body)
+    If Len(ver) = 0 Then Exit Sub
+    gLatestVersion = ver
 
     SaveSetting SETTINGS_APP, SETTINGS_SECTION, "LastCheck", Format$(Now, "yyyymmddhhnnss")
     SaveSetting SETTINGS_APP, SETTINGS_SECTION, "LatestVersion", gLatestVersion
@@ -99,15 +102,13 @@ Private Function CreateHttp() As Object
     If CreateHttp Is Nothing Then Set CreateHttp = CreateObject("Microsoft.XMLHTTP")
 End Function
 
-Private Function CheckIsDue() As Boolean
-    Dim lastCheck As Date
-
-    lastCheck = ParseStamp(GetSetting(SETTINGS_APP, SETTINGS_SECTION, "LastCheck", ""))
+' A check is due when none ran yet, the clock went backwards, or the interval has elapsed.
+Public Function IsCheckDue(ByVal lastCheck As Date, ByVal asOf As Date) As Boolean
     If lastCheck = 0 Then
-        CheckIsDue = True
+        IsCheckDue = True
         Exit Function
     End If
-    CheckIsDue = (Now < lastCheck) Or (DateDiff("h", lastCheck, Now) >= CHECK_INTERVAL_HOURS)
+    IsCheckDue = (asOf < lastCheck) Or (DateDiff("h", lastCheck, asOf) >= CHECK_INTERVAL_HOURS)
 End Function
 
 Private Function ParseStamp(ByVal stamp As String) As Date
@@ -120,8 +121,8 @@ InvalidStamp:
     ParseStamp = 0
 End Function
 
-' The newest release tag is the first one in the Atom feed.
-Private Function ParseFeed(ByVal body As String) As Boolean
+' The newest release tag is the first one in the Atom feed; returns "" when none is found or it is malformed.
+Public Function LatestVersionInFeed(ByVal body As String) As String
     Dim marker As String
     Dim start As Long
     Dim finish As Long
@@ -134,9 +135,7 @@ Private Function ParseFeed(ByVal body As String) As Boolean
     finish = InStr(start, body, """")
     If finish = 0 Then Exit Function
     ver = Mid$(body, start, finish - start)
-    If Not IsValidVersion(ver) Then Exit Function
-    gLatestVersion = ver
-    ParseFeed = True
+    If IsValidVersion(ver) Then LatestVersionInFeed = ver
 End Function
 
 Private Sub LoadCachedUpdate()
@@ -151,8 +150,8 @@ Private Sub LoadCachedUpdate()
     gUpdateAvailable = True
 End Sub
 
-Private Function IsSnoozed() As Boolean
-    IsSnoozed = (gSnoozedVersion = gLatestVersion And Len(gLatestVersion) > 0 And Now < gSnoozedUntil)
+Public Function IsSnoozedAt(ByVal snoozedVersion As String, ByVal latestVersion As String, ByVal snoozedUntil As Date, ByVal asOf As Date) As Boolean
+    IsSnoozedAt = (snoozedVersion = latestVersion And Len(latestVersion) > 0 And asOf < snoozedUntil)
 End Function
 
 ' ---- Helpers ----
@@ -177,7 +176,7 @@ Private Function IsValidVersion(ByVal ver As String) As Boolean
     IsValidVersion = True
 End Function
 
-Private Function CompareVersions(ByVal a As String, ByVal b As String) As Long
+Public Function CompareVersions(ByVal a As String, ByVal b As String) As Long
     Dim pa() As String
     Dim pb() As String
     Dim i As Long

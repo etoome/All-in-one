@@ -3,36 +3,36 @@ Option Explicit
 
 ' Ribbon onAction callback: align the tops of all selected shapes to the first-selected shape.
 Sub AlignObjectsTop(control As IRibbonControl)
-    AlignToFirstShape "top"
+    AlignToFirstShape False, AnchorStart
 End Sub
 
 ' Ribbon onAction callback: align the vertical centers to the first-selected shape.
 Sub AlignObjectsMiddle(control As IRibbonControl)
-    AlignToFirstShape "middle"
+    AlignToFirstShape False, AnchorCenter
 End Sub
 
 ' Ribbon onAction callback: align the bottoms to the first-selected shape.
 Sub AlignObjectsBottom(control As IRibbonControl)
-    AlignToFirstShape "bottom"
+    AlignToFirstShape False, AnchorEnd
 End Sub
 
 ' Ribbon onAction callback: align the left edges to the first-selected shape.
 Sub AlignObjectsLeft(control As IRibbonControl)
-    AlignToFirstShape "left"
+    AlignToFirstShape True, AnchorStart
 End Sub
 
 ' Ribbon onAction callback: align the horizontal centers to the first-selected shape.
 Sub AlignObjectsCenter(control As IRibbonControl)
-    AlignToFirstShape "center"
+    AlignToFirstShape True, AnchorCenter
 End Sub
 
 ' Ribbon onAction callback: align the right edges to the first-selected shape.
 Sub AlignObjectsRight(control As IRibbonControl)
-    AlignToFirstShape "right"
+    AlignToFirstShape True, AnchorEnd
 End Sub
 
 ' Moves every selected shape except the first onto the first one's edge or center; a lone shape aligns to the slide.
-Private Sub AlignToFirstShape(ByVal mode As String)
+Private Sub AlignToFirstShape(ByVal horizontal As Boolean, ByVal anchor As AlignAnchor)
     Dim shapes As ShapeRange
     Dim refLeft As Single, refTop As Single, refWidth As Single, refHeight As Single
     Dim firstIndex As Long
@@ -56,13 +56,10 @@ Private Sub AlignToFirstShape(ByVal mode As String)
     End If
 
     For i = firstIndex To shapes.Count
-        Select Case mode
-            Case "top": shapes(i).Top = refTop
-            Case "middle": shapes(i).Top = refTop + refHeight / 2 - shapes(i).Height / 2
-            Case "bottom": shapes(i).Top = refTop + refHeight - shapes(i).Height
-            Case "left": shapes(i).Left = refLeft
-            Case "center": shapes(i).Left = refLeft + refWidth / 2 - shapes(i).Width / 2
-            Case "right": shapes(i).Left = refLeft + refWidth - shapes(i).Width
-        End Select
+        If horizontal Then
+            shapes(i).Left = AlignedStart(anchor, refLeft, refWidth, shapes(i).Width)
+        Else
+            shapes(i).Top = AlignedStart(anchor, refTop, refHeight, shapes(i).Height)
+        End If
     Next i
 End Sub
