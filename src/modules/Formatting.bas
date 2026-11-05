@@ -75,12 +75,12 @@ Private gHasCopied As Boolean
 
 ' Ribbon onAction callback: snapshot all formatting of the first-selected shape.
 Sub CopyShapeFormatting(control As IRibbonControl)
-    Dim selectedShapes As ShapeRange
+    Dim shapes As ShapeRange
 
-    Set selectedShapes = SelectedShapes(SelectionSingle)
-    If selectedShapes Is Nothing Then Exit Sub
+    Set shapes = SelectedShapes(SelectionSingle)
+    If shapes Is Nothing Then Exit Sub
 
-    gCopied = SnapshotShape(selectedShapes(1))
+    gCopied = SnapshotShape(shapes(1))
     gHasCopied = True
 
     RefreshRibbon
@@ -88,15 +88,15 @@ End Sub
 
 ' Ribbon onAction callback: control.Tag picks the formatting item (or "all") to apply to every selected shape.
 Sub ApplyShapeFormatting(control As IRibbonControl)
-    Dim selectedShapes As ShapeRange
+    Dim shapes As ShapeRange
     Dim i As Long
 
     If Not gHasCopied Then Exit Sub
 
-    Set selectedShapes = SelectedShapes(SelectionAny)
-    If selectedShapes Is Nothing Then Exit Sub
-    For i = 1 To selectedShapes.Count
-        ApplyFormattingItem selectedShapes(i), control.Tag
+    Set shapes = SelectedShapes(SelectionAny)
+    If shapes Is Nothing Then Exit Sub
+    For i = 1 To shapes.Count
+        ApplyFormattingItem shapes(i), control.Tag
     Next i
 End Sub
 
