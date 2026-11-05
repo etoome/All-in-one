@@ -1,3 +1,9 @@
+## v1.2.3 (2026-11-05)
+
+### Bug Fixes
+
+- Colliding names ([`75c9d90`](https://github.com/etoome/All-in-one/commit/75c9d903c29def55c3aa246200be9d21f66e2c30))
+
 ## v1.2.2 (2026-11-04)
 
 ### Bug Fixes
